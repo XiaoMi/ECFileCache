@@ -1,0 +1,16 @@
+target
+gen-loc
+.classpath
+.project
+.settings
+.idea
+*.iml
+*.orig
+.cache
+*.log
+core
+filtercondition
+pushed.log
+test_users.txt
+*.pyc
+*.log*
