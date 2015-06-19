@@ -3,7 +3,6 @@ package com.xiaomi.filecache.ec.redis;
 import com.xiaomi.filecache.ec.ECodec;
 import com.xiaomi.filecache.ec.exceptions.ECFileCacheException;
 import com.xiaomi.filecache.ec.utils.Pair;
-import com.xiaomi.filecache.ec.utils.PerfCounterConstants;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;

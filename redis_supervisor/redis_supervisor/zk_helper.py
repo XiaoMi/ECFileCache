@@ -8,7 +8,13 @@ from kazoo.client import KazooClient
 from kazoo.client import KazooState
 from kazoo.recipe import lock
 from kazoo.retry import KazooRetry
-from kazoo.handlers.threading import KazooTimeoutError
+try:
+    from kazoo.handlers.threading import KazooTimeoutError
+    TIMEOUT_EXCEPTION = KazooTimeoutError
+except ImportError:
+    from kazoo.handlers.threading import TimeoutError
+    TIMEOUT_EXCEPTION = TimeoutError
+
 from kazoo.exceptions import *
 from utils.log_util import get_logger_name, get_lib_logger_name
 
@@ -46,6 +52,8 @@ class ZkHelper:
         self.__zk_client = None
         self.__zk_lock = None
 
+        self.__stopped = False
+
         self.init_zk_client()
 
     def init_zk_client(self):
@@ -62,12 +70,9 @@ class ZkHelper:
         LOGGER.info("current pool:[%s]" % children)
         return children
 
-    def create_redis_node(self, redis_id):
-        """
-        :type redis_id: int
-        """
+    def create_redis_node(self):
         try:
-            self.__zk_redis_path = "%s/%d" % (self.__zk_redis_pool, redis_id)
+            self.__zk_redis_path = "%s/%d" % (self.__zk_redis_pool, self.__zk_registered_redis_id)
             self.__zk_client.create(path=self.__zk_redis_path, value=self.__redis_address, ephemeral=True, makepath=True)
         except (NoNodeError, NoChildrenForEphemeralsError, NodeExistsError, ZookeeperError), e:
             LOGGER.error("zk error when create:%s", self.__zk_redis_path, exc_info=True)
@@ -81,6 +86,12 @@ class ZkHelper:
                 if self.__zk_registered_redis_id is not None:
                     if self.__zk_registered_redis_id not in redis_pool:
                         redis_id = self.__zk_registered_redis_id
+                    else:
+                        zk_redis_address = self.__zk_client.get(self.__zk_redis_path)
+                        if zk_redis_address[0] == self.__redis_address:
+                            LOGGER.warn("registered node still available, do nothing. redis id [%d], address [%s]"
+                                        % (redis_id, zk_redis_address))
+                            return
 
                 if redis_id is None:
                     for redis_id in xrange(len(redis_pool) + 1):
@@ -89,7 +100,7 @@ class ZkHelper:
                     self.__zk_registered_redis_id = redis_id
 
                 LOGGER.info("register to pool with redis_id:[%d]" % redis_id)
-                self.create_redis_node(redis_id)
+                self.create_redis_node()
                 time.sleep(5)
                 self.__zk_lock.release()
         except LockTimeout, e:
@@ -102,7 +113,7 @@ class ZkHelper:
             return
         try:
             self.__zk_client.start(self.__zk_timeout)
-        except KazooTimeoutError, e:
+        except TIMEOUT_EXCEPTION, e:
             LOGGER.error("cannot connect to zookeeper", exc_info=True)
             raise ZkHelperException(e)
 
@@ -113,10 +124,8 @@ class ZkHelper:
 
         if stat == KazooState.CONNECTED:
             LOGGER.info("In stat:" + stat + ". do nothing")
-            pass
         elif stat == KazooState.SUSPENDED:
             LOGGER.info("In stat:" + stat + ". do nothing")
-            pass
         elif stat == KazooState.LOST:
             if self.is_redis_running():
                 LOGGER.error("In stat:" + stat + ". reconnect")
@@ -128,18 +137,32 @@ class ZkHelper:
 
     def reconnect(self):
 
-        if not self.is_connected():
-            # close old zk_client, init and start a new zk_client
-            self.close()
+        # wait timeout sec for make sure session expired
+        time.sleep(self.__zk_timeout)
+
+        if self.__stopped:
+            LOGGER.warn("process has been stopped, do nothing")
+            return
+
+        if self.is_connected():
+            # if connected, do nothing
+            LOGGER.warn("auto reconnected after %d sec, do nothing" % self.__zk_timeout)
+            return
+
+        if self.is_redis_running():
+            # init and start a new zk_client
             self.init_zk_client()
             self.start()
 
-        if self.is_redis_running():
             self.register_redis()
         else:
             LOGGER.warn("Lost connection to zk, redis is not running. Do nothing")
 
     def close(self):
+        LOGGER.info("stop process and close zk connection")
+
+        self.__stopped = True
+
         if not self.is_connected():
             return
         # ephemeral node will not be deleted right now, so we delete it manually

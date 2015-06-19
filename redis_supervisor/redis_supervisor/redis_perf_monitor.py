@@ -7,6 +7,7 @@ from requests import ConnectionError
 import redis
 import time
 from threading import Thread
+from config import Config
 from utils.log_util import get_logger_name
 
 SOCKET_TIMEOUT = 20  # sec
@@ -22,7 +23,7 @@ class RedisPerfMonitor(Thread):
     def create(cls):
         return cls()
 
-    def __init__(self, host, port, tags):
+    def __init__(self, host, port, is_enabled, tags):
         Thread.__init__(self)
         self.__redis_client = redis.StrictRedis(host=host,
                                                 port=port,
@@ -31,11 +32,15 @@ class RedisPerfMonitor(Thread):
                                                 socket_keepalive=True)
         self.__host = host
         self.__port = port
+        self.__is_enabled = is_enabled
         self.__tags = tags  # "idc=lg,loc=beijing"
 
         self.__stop = False
 
     def run(self):
+        if not self.__is_enabled:
+            return
+
         while not self.__stop:
             try:
                 redis_info = self.__redis_client.info('stats')

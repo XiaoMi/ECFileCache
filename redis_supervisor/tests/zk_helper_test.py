@@ -52,7 +52,12 @@ class ZkHelperTest(unittest.TestCase):
             zk_clients[i].close()
 
     def test_reconnect_when_zk_session_expire(self):
+        LOGGER.warn("test zk_session_expire with redis running")
         self.reconnect_when_zk_session_expire(True)
+
+        time.sleep(10)
+
+        LOGGER.warn("test zk_session_expire with redis stop")
         self.reconnect_when_zk_session_expire(False)
 
     def reconnect_when_zk_session_expire(self, is_redis_running):
@@ -67,6 +72,7 @@ class ZkHelperTest(unittest.TestCase):
         # make zk session expired
         zk_client = zk_helper.get_zk_client()
         client_id = zk_client.client_id
+        time.sleep(10)
 
         zk_retry = KazooRetry(max_tries=1, delay=1.0, ignore_expire=False)
         zk_client_new = KazooClient(hosts=ZK_ADDRESSES, timeout=ZK_TIMEOUT, connection_retry=zk_retry,

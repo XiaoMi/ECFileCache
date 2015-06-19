@@ -278,7 +278,6 @@ public class ECFileCacheTest {
 
         keyedPool.put(3, null);
         keyedPool.put(4, null);
-        keyedPool.put(5, null);
         try {
             testPutGetDeleteImpl();
             Assert.fail("should not reach here");

@@ -17,6 +17,7 @@ KEY_REDIS_BIN = "redis_bin"
 KEY_REDIS_CONF = "redis_conf"
 KEY_REDIS_ADDRESS = "redis_address"
 
+KEY_ENABLE_PERF_MONITOR = "enable_perf_monitor"
 KEY_REDIS_PERF_TAGS = "redis_perf_tags"
 
 LOGGER = logging.getLogger(get_logger_name(__name__))
@@ -63,6 +64,7 @@ class Config:
         self.__redis_conf_specified = None
 
         self.__redis_perf_tags = None
+        self.__redis_enable_perf_monitor = None
 
     #
     # Read config from string
@@ -93,6 +95,9 @@ class Config:
         if KEY_REDIS_PERF_TAGS not in json_obj:
             raise ConfigException("Cannot find %s" % KEY_REDIS_PERF_TAGS)
 
+        if KEY_ENABLE_PERF_MONITOR not in json_obj:
+            raise ConfigException("Cannot find %s" % KEY_ENABLE_PERF_MONITOR)
+
         # Write value
         self.set_zk_addresses(json_obj[KEY_ZK_ADDRESSES])
         self.set_zk_root(json_obj[KEY_ZK_ROOT])
@@ -101,6 +106,7 @@ class Config:
         self.set_redis_conf(json_obj[KEY_REDIS_CONF])
         self.set_redis_address(json_obj[KEY_REDIS_ADDRESS])
         self.set_redis_perf_tags(json_obj[KEY_REDIS_PERF_TAGS])
+        self.set_enable_perf_monitor(json_obj[KEY_ENABLE_PERF_MONITOR])
 
         LOGGER.info("use config:[%s]", self.to_string())
 
@@ -256,6 +262,16 @@ class Config:
     def get_redis_perf_tags(self):
         return self.__redis_perf_tags
 
+    def set_enable_perf_monitor(self, is_enable):
+        """
+
+        :type is_enable: str
+        """
+        self.__redis_enable_perf_monitor = str(True).lower() == is_enable.lower()
+
+    def get_enable_perf_monitor(self):
+        return self.__redis_enable_perf_monitor
+
     def validate_net_address(self, addresses):
         """
         :type addresses: str
@@ -285,6 +301,8 @@ class Config:
                  + KEY_ZK_TIMEOUT + ":" + str(self.__zk_timeout) + "\n" \
                  + KEY_REDIS_BIN + ":" + self.__redis_bin + "\n" \
                  + KEY_REDIS_CONF + ":" + self.__redis_conf + "\n" \
-                 + KEY_REDIS_ADDRESS + ":" + self.__redis_address + "\n"
+                 + KEY_REDIS_ADDRESS + ":" + self.__redis_address + "\n" \
+                 + KEY_ENABLE_PERF_MONITOR + ":" + self.__redis_enable_perf_monitor + "\n" \
+                 + KEY_REDIS_PERF_TAGS + ":" + self.__redis_perf_tags + "\n"
 
         return string

@@ -19,7 +19,7 @@ class Supervisor:
                              config.get_redis_address())
 
         [host, port] = config.get_redis_address().split(":")
-        redis_monitor = RedisPerfMonitor(host, port, config.get_redis_perf_tags())
+        redis_monitor = RedisPerfMonitor(host, port, config.get_enable_perf_monitor(), config.get_redis_perf_tags())
 
         self.__redis = RedisDaemon(config, zk_client, redis_monitor)
 
