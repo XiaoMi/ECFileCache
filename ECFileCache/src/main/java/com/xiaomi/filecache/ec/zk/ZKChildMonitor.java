@@ -21,9 +21,13 @@ public class ZKChildMonitor implements ZKChildListener {
     private static Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
     private static final String SLASH = "/";
     private static final String CLUSTER_ID = "cluster_id";
+    private static final String ZK_SERVERS = "zk_servers";
     private static final String ZK_CLUSTER_PATH_FORMAT = "/xmss/filecache/%s";
     private static final String ZK_POOL_PATH = "pool";
     private static final String CLUSTER_CONF_FILE = "/cluster.properties";
+
+    private String clusterId;
+    private String zkServers;
 
     private ZKClient client;
     private volatile Map<Integer, String> redisCluster;
@@ -42,17 +46,17 @@ public class ZKChildMonitor implements ZKChildListener {
 
     private ZKChildMonitor() {
 
-        String zkClusterPath = String.format(ZK_CLUSTER_PATH_FORMAT, getClusterId());
-        String zkClusterPoolPath = zkClusterPath + SLASH + ZK_POOL_PATH;
+        loadZkInfos();
+        client = new ZKClient(zkServers);
 
-        String servers = "zk1.onebox.srv:2182,zk2.onebox.srv:2182,zk3.onebox.srv:2182,zk4.onebox.srv:2182,zk5.onebox.srv:2182";
-        client = new ZKClient(servers);
-
+        String zkClusterPath = String.format(ZK_CLUSTER_PATH_FORMAT, clusterId);
         initConfig(zkClusterPath);
+
+        String zkClusterPoolPath = zkClusterPath + SLASH + ZK_POOL_PATH;
         initRedisAccess(zkClusterPoolPath);
     }
 
-    private String getClusterId() {
+    private void loadZkInfos() {
 
         Properties props = new Properties();
         try {
@@ -70,7 +74,18 @@ public class ZKChildMonitor implements ZKChildListener {
         }
         Validate.notEmpty(clusterIdStr);
 
-        return clusterIdStr;
+        clusterId = clusterIdStr;
+
+        String zkServersStr = System.getProperty(ZK_SERVERS);
+        if (StringUtils.isNotEmpty(zkServersStr)) {
+            LOGGER.warn("Apply the zk servers from system setting: [{}]", zkServersStr);
+        } else {
+            zkServersStr = props.getProperty(ZK_SERVERS);
+            LOGGER.warn("Apply the zk servers from cluster.properties: [{}]", zkServersStr);
+        }
+        Validate.notEmpty(zkServersStr);
+
+        zkServers = zkServersStr;
     }
 
     private void initConfig(String clusterPath){

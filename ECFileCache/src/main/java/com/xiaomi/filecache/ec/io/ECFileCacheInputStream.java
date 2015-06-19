@@ -6,6 +6,7 @@ import com.xiaomi.filecache.ec.redis.RedisAccessBase;
 import com.xiaomi.filecache.ec.utils.Pair;
 import com.xiaomi.filecache.thrift.FileCacheKey;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,8 @@ public class ECFileCacheInputStream extends InputStream {
     private static final Logger LOGGER = LoggerFactory.getLogger(ECFileCacheInputStream.class.getName());
 
     public ECFileCacheInputStream(FileCacheKey cacheKey, Map<Long, Integer> chunkPosAndSize, RedisAccessBase redisAccess, List<Integer> redisIds) {
+        Validate.isTrue(cacheKey.isSetFileSize());
+
         this.key = cacheKey.getUuid();
         this.fileSize = (int)cacheKey.getFileSize();
         this.chunkPosAndSize = chunkPosAndSize;

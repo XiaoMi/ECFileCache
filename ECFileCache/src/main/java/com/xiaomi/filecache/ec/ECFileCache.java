@@ -133,7 +133,6 @@ public class ECFileCache {
 
             List<Integer> redisIds = getRedisIds(fileCacheKey);
 
-            long startTime = System.currentTimeMillis();
             monitor.get().put(redisIds, fileCacheKey.getUuid(), chunkPos, dataAndCoding);
 
         } catch (IOException e) {
@@ -175,7 +174,6 @@ public class ECFileCache {
 
         List<byte[]> chunkList = new ArrayList<byte[]>();
 
-        long startTime = System.currentTimeMillis();
         List<Pair<byte[][], int[]>> chunks;
         chunks = monitor.get().get(redisIds, fileCacheKey.getUuid());
 
@@ -204,9 +202,12 @@ public class ECFileCache {
             return null;
         }
 
-        int fileSize = (int) fileCacheKey.getFileSize();
-        if (data.length > fileSize) {
-            data = Arrays.copyOf(data, fileSize);
+        // if fileSize is not set, caller should trim the padding data
+        if (fileCacheKey.isSetFileSize()) {
+            int fileSize = (int) fileCacheKey.getFileSize();
+            if (data.length > fileSize) {
+                data = Arrays.copyOf(data, fileSize);
+            }
         }
 
         return data;
