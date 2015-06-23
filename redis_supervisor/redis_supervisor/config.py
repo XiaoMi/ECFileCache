@@ -302,7 +302,7 @@ class Config:
                  + KEY_REDIS_BIN + ":" + self.__redis_bin + "\n" \
                  + KEY_REDIS_CONF + ":" + self.__redis_conf + "\n" \
                  + KEY_REDIS_ADDRESS + ":" + self.__redis_address + "\n" \
-                 + KEY_ENABLE_PERF_MONITOR + ":" + self.__redis_enable_perf_monitor + "\n" \
+                 + KEY_ENABLE_PERF_MONITOR + ":" + str(self.__redis_enable_perf_monitor) + "\n" \
                  + KEY_REDIS_PERF_TAGS + ":" + self.__redis_perf_tags + "\n"
 
         return string
