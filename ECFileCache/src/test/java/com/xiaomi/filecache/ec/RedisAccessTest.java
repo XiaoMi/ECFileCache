@@ -37,16 +37,16 @@ public class RedisAccessTest {
     public Map<Integer, String> getRedisCluster() {
         Map<Integer, String> cluster = new HashMap<Integer, String>();
         cluster.put(0, "localhost:6379");
-        cluster.put(1, "localhost:6380"); // down
+        cluster.put(1, "localhost:6380");
         cluster.put(2, "localhost:6381");
         cluster.put(3, "localhost:6382");
-        cluster.put(4, "localhost:6383"); // down
+        cluster.put(4, "localhost:6383");
         cluster.put(5, "localhost:6384");
         cluster.put(6, "localhost:6385");
-        cluster.put(7, "localhost:6386"); // down
+        cluster.put(7, "localhost:6386");
         cluster.put(8, "localhost:6387");
         cluster.put(9, "localhost:6388");
-        cluster.put(10, "localhost:6389"); // down
+        cluster.put(10, "localhost:6389");
         cluster.put(11, "localhost:6390");
         cluster.put(12, "localhost:6391");
         return cluster;
@@ -61,7 +61,6 @@ public class RedisAccessTest {
     }
 
     private void testPutGetDeleteImpl() throws ECFileCacheException {
-        int n = 11;
         int m = 3;
         int k = 8;
 
@@ -97,7 +96,7 @@ public class RedisAccessTest {
             access.get(ids, key);
             Assert.fail("should not reach here");
         } catch (ECFileCacheException e) {
-            Assert.assertTrue(StringUtils.startsWith(e.getMessage(), "get cached data fail count > CODING_BLOCK_NUM"));
+            Assert.assertTrue(StringUtils.contains(e.getMessage(), "fail count > CODING_BLOCK_NUM"));
         }
 
         // get not exist key
@@ -105,7 +104,7 @@ public class RedisAccessTest {
             access.get(ids, "not_exist");
             Assert.fail("should not reach here");
         } catch (ECFileCacheException e) {
-            Assert.assertTrue(StringUtils.startsWith(e.getMessage(), "get cached data fail count > CODING_BLOCK_NUM"));
+            Assert.assertTrue(StringUtils.contains(e.getMessage(), "fail count > CODING_BLOCK_NUM"));
         }
     }
 
@@ -159,7 +158,7 @@ public class RedisAccessTest {
             access.get(ids, key);
             Assert.fail("should not reach here");
         } catch (ECFileCacheException e) {
-            Assert.assertTrue(StringUtils.startsWith(e.getMessage(), "get cached data fail count > CODING_BLOCK_NUM"));
+            Assert.assertTrue(StringUtils.contains(e.getMessage(), "fail count > CODING_BLOCK_NUM"));
         }
     }
 
@@ -167,7 +166,7 @@ public class RedisAccessTest {
     public void testJedis() {
 
         String host = "localhost";
-        int port = 6380;
+        int port = 6379;
         String key = "test_xxx";
         String keyNotExist = "test_not_exist";
 

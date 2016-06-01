@@ -14,6 +14,7 @@ public class Config {
     private static final String TOLERATE_ONE_ERASED_DEVICE_AFTER_RETRY = "tolerate_one_erased_device_after_retry";
     private static final String JEDIS_POOL_MAX = "jedis_pool_max";
     private static final String JEDIS_SOCKET_TIMEOUT_MS = "jedis_socket_timeout_ms";
+    private static final String JEDIS_CONNECT_TIMEOUT_MS = "jedis_connect_timeout_ms";
     private static final String CHECK_JEDIS_RESULT_TIMEOUT_MS = "check_jedis_result_timeout_ms";
     private static final String REDIS_PASSWORD = "redis_password";
     private static final String REDIS_KEY_EXPIRE_SEC= "redis_key_expire_sec";
@@ -24,6 +25,7 @@ public class Config {
     private int tolerateOneErasedDeviceAfterRetry;
     private int jedisPoolMax;
     private int jedisSocketTimeoutMs;
+    private int jedisConnectTimeoutMs;
     private int checkJedisResultTimeoutMs;
     private int redisKeyExpireSec;
     private boolean redisAccessParallel;
@@ -54,9 +56,10 @@ public class Config {
         Validate.isTrue(tolerateOneErasedDeviceAfterRetry > 0 && selectOffsetMaxRetry >= tolerateOneErasedDeviceAfterRetry);
 
         jedisPoolMax = Integer.parseInt(props.getProperty(JEDIS_POOL_MAX, "20"));
-        jedisSocketTimeoutMs = Integer.parseInt(props.getProperty(JEDIS_SOCKET_TIMEOUT_MS, "200"));
+        jedisSocketTimeoutMs = Integer.parseInt(props.getProperty(JEDIS_SOCKET_TIMEOUT_MS, "50"));
+        jedisConnectTimeoutMs = Integer.parseInt(props.getProperty(JEDIS_CONNECT_TIMEOUT_MS, "200"));
         checkJedisResultTimeoutMs = Integer.parseInt(props.getProperty(CHECK_JEDIS_RESULT_TIMEOUT_MS, "30"));
-        Validate.isTrue((jedisPoolMax | jedisSocketTimeoutMs | checkJedisResultTimeoutMs) > 0);
+        Validate.isTrue((jedisPoolMax | jedisSocketTimeoutMs | jedisConnectTimeoutMs | checkJedisResultTimeoutMs) > 0);
 
         redisKeyExpireSec = Integer.parseInt(props.getProperty(REDIS_KEY_EXPIRE_SEC, "3600"));
 
@@ -88,6 +91,10 @@ public class Config {
 
     public int getCheckJedisResultTimeoutMs() {
         return checkJedisResultTimeoutMs;
+    }
+
+    public int getJedisConnectTimeoutMs() {
+        return jedisConnectTimeoutMs;
     }
 
     public String getRedisPassword() {

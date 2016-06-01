@@ -10,8 +10,8 @@ import com.yammer.metrics.core.Timer;
 import com.yammer.metrics.core.TimerContext;
 import com.yammer.metrics.reporting.ConsoleReporter;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +38,6 @@ public class FileCachePerf {
 
     private long reportInterval = 5;
     private long reportCount = 30;
-    //private int fileSize = 1024 * 1024 + 512 * 1024;
     private int fileSize = 64 * 1024;
     int chunkNum = fileSize / 64 / 1024;
 
@@ -48,7 +47,7 @@ public class FileCachePerf {
     private  boolean getStream;
 
     FileCachePerf(AppConfig config) {
-        ECFileCache = new ECFileCache();
+        ECFileCache = new ECFileCache(config.clusterId, (short) 0);
 
         this.threadNum = config.threadNum;
         this.getStream = config.getStream;
@@ -89,8 +88,7 @@ public class FileCachePerf {
 
                 // run duration
                 try {
-                    //Thread.sleep(runDuration);
-                    Thread.sleep(Long.MAX_VALUE);
+                    Thread.sleep(runDuration);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } finally {
@@ -117,17 +115,11 @@ public class FileCachePerf {
 
             moniter.awaitTermination(runDuration, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            e.printStackTrace();
-            throw new RuntimeException("wait for ending failed");
+            throw new RuntimeException("wait for ending failed", e);
         }
     }
 
     private ThreadPoolExecutor multiThreadUpload(int threadNum, final int threadFileNum) {
-
-        /*
-        uploadPerform(0, threadFileNum);
-        return null;
-        */
 
         ThreadPoolExecutor pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadNum);
         pool.prestartAllCoreThreads();
@@ -155,7 +147,6 @@ public class FileCachePerf {
             try {
                 chunks = DataUtil.arrayToArray2D(buffer, chunkNum);
             } catch (ECFileCacheException e) {
-                e.printStackTrace();
                 throw new RuntimeException("split array fail", e);
             }
 
@@ -200,7 +191,6 @@ public class FileCachePerf {
                 Validate.isTrue(ArrayUtils.isEquals(buffer, buf));
 
             } catch (Exception e) {
-                e.printStackTrace();
                 LOGGER.error("PERF TEST:perform test fail in thread id {} ", threadId, e);
 
                 if (failCounter != null) {

@@ -20,13 +20,11 @@ public class ZKChildMonitor implements ZKChildListener {
 
     private static Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
     private static final String SLASH = "/";
-    private static final String CLUSTER_ID = "cluster_id";
+    private static final String ZK_CLUSTER_PATH_FORMAT = "/xmss/clusters/%d/filecache";
+    private static final String ZK_PARTITION_PATH_FORMAT = ZK_CLUSTER_PATH_FORMAT + "/partition_%d/pool";
     private static final String ZK_SERVERS = "zk_servers";
-    private static final String ZK_CLUSTER_PATH_FORMAT = "/xmss/filecache/%s";
-    private static final String ZK_POOL_PATH = "pool";
     private static final String CLUSTER_CONF_FILE = "/cluster.properties";
 
-    private String clusterId;
     private String zkServers;
 
     private ZKClient client;
@@ -34,26 +32,40 @@ public class ZKChildMonitor implements ZKChildListener {
     private volatile RedisAccessBase redisAccess;
 
     private boolean isRedisAccessParallel = false;
+    private short clusterId;
+    private short partitionId;
 
+    private static volatile ZKChildMonitor instance = null;
 
-    private static class MonitorHolder {
-        static final ZKChildMonitor INSTANCE = new ZKChildMonitor();
+    public static ZKChildMonitor getInstance(short clusterId, short partitionId) {
+        if (instance == null) {
+            synchronized (ZKChildMonitor.class) {
+                if (instance == null) {
+                    instance = new ZKChildMonitor(clusterId, partitionId);
+                    LOGGER.info("init ZkChildMonitor with clusterId[{}]", clusterId);
+                }
+            }
+        } else {
+            Validate.isTrue(clusterId == instance.clusterId && partitionId == instance.partitionId,
+                    String.format("ZkChildMonitor initialized with id[%d], reject id[%d]", instance.clusterId, clusterId));
+        }
+        return instance;
     }
 
-    public static ZKChildMonitor getInstance() {
-        return MonitorHolder.INSTANCE;
-    }
 
-    private ZKChildMonitor() {
+    private ZKChildMonitor(short clusterId, short partitionId) {
+
+        this.clusterId = clusterId;
+        this.partitionId = partitionId;
 
         loadZkInfos();
         client = new ZKClient(zkServers);
 
         String zkClusterPath = String.format(ZK_CLUSTER_PATH_FORMAT, clusterId);
-        initConfig(zkClusterPath);
+        String zkPartitionPath = String.format(ZK_PARTITION_PATH_FORMAT, clusterId, partitionId);
 
-        String zkClusterPoolPath = zkClusterPath + SLASH + ZK_POOL_PATH;
-        initRedisAccess(zkClusterPoolPath);
+        initConfig(zkClusterPath);
+        initRedisAccess(zkPartitionPath);
     }
 
     private void loadZkInfos() {
@@ -64,17 +76,6 @@ public class ZKChildMonitor implements ZKChildListener {
         } catch (IOException e) {
             LOGGER.error("Read cluster.properties exception", e);
         }
-
-        String clusterIdStr = System.getProperty(CLUSTER_ID);
-        if (StringUtils.isNotEmpty(clusterIdStr)) {
-            LOGGER.warn("Apply the cluster Id from system setting: [{}]", clusterIdStr);
-        } else {
-            clusterIdStr = props.getProperty(CLUSTER_ID);
-            LOGGER.warn("Apply the cluster Id from cluster.properties: [{}]", clusterIdStr);
-        }
-        Validate.notEmpty(clusterIdStr);
-
-        clusterId = clusterIdStr;
 
         String zkServersStr = System.getProperty(ZK_SERVERS);
         if (StringUtils.isNotEmpty(zkServersStr)) {

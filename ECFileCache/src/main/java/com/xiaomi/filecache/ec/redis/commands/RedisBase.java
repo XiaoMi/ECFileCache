@@ -18,7 +18,9 @@ public abstract class RedisBase implements Callable<Integer> {
         GET_ALL,
         GET_CHUNK,
         HKEYS,
-        PUT_CHUNK
+        PUT_CHUNK,
+        PUT_INFO,
+        GET_INFO
     }
 
     Command command = null;
@@ -34,22 +36,25 @@ public abstract class RedisBase implements Callable<Integer> {
     public Integer call() throws Exception {
         if (jedisPool == null) {
             String verbose = String.format("have no jedis pool for key[%s], command[%s]", key, command.toString());
-            LOGGER.error(verbose);
+            LOGGER.warn(verbose);
             throw new ECFileCacheException(verbose);
         }
 
         Jedis jedis = null;
+        long start = System.currentTimeMillis();
         try {
             jedis = jedisPool.getResource();
+            start = System.currentTimeMillis();
             return doRequest(jedis, jedisPool.getRedisAddress());
         } catch (Exception e) {
+            long cost = System.currentTimeMillis() - start;
             if (jedis != null) {
                 jedis.close();
                 jedis = null;
             }
-            String verbose = String.format("Access redis [%s] for key [%s] and command [%s] exception: [%s]",
-                    jedisPool.getRedisAddress(), key, command.toString(), e.getMessage());
-            LOGGER.error(verbose);
+            String verbose = String.format("Access redis [%s] for key [%s] and command [%s] exception: [%s], cost [%d]",
+                    jedisPool.getRedisAddress(), key, command.toString(), e.getMessage(), cost);
+            LOGGER.warn(verbose);
             throw new ECFileCacheException(verbose, e);
         } finally {
             if (jedis != null) {

@@ -52,7 +52,7 @@ public class RedisAccessParallel extends RedisAccessBase {
                 final String key = cacheKey + SEP + i;
                 final String field = fieldKey + SEP + dataLength;
                 final byte[] data = chunks[i];
-                RedisPutChunk redisPutChunk = new RedisPutChunk(jedis, key, field, data, fieldKey == 0);
+                RedisPutChunk redisPutChunk = new RedisPutChunk(jedis, key, field, data);
 
                 if (!pool.isShutdown()) {
                     Future<Integer> future = completionService.submit(redisPutChunk);
@@ -189,7 +189,8 @@ public class RedisAccessParallel extends RedisAccessBase {
                 if (task != null && task.get() == 0) {
                     success = true;
                 } else {
-                    LOGGER.error("communicate with redis timeout or failed. remain timeout[{}ms]", timeoutMs);
+                    long timeoutMsNow = timeoutMs - (System.currentTimeMillis() - lastTime);
+                    LOGGER.warn("communicate with redis timeout or failed. remain timeout[{}ms]", timeoutMsNow);
                 }
             } catch (CancellationException e) {
                 LOGGER.error("task cancelled", e);
@@ -211,7 +212,7 @@ public class RedisAccessParallel extends RedisAccessBase {
                 for (Future<Integer> future : futures) {
                     future.cancel(true);
                 }
-                checkFail(failCount);
+                checkFail(failCount, CHECK_REDIS_RESULT, "NIL");
             }
         }
     }

@@ -32,13 +32,13 @@ public class RedisAccessSerial extends RedisAccessBase {
                 final String key = cacheKey + SEP + Integer.toString(i);
                 final String field = fieldKey + SEP + dataLength;
                 final byte[] data = chunks[i];
-                RedisPutChunk redisPutChunk = new RedisPutChunk(jedis, key, field, data, fieldKey == 0);
+                RedisPutChunk redisPutChunk = new RedisPutChunk(jedis, key, field, data);
 
-                failCount += accessRedisAndCheckResult(redisPutChunk, key);
+                failCount += accessRedisAndCheckResult(redisPutChunk);
             } else {
                 failCount++;
             }
-            checkFail(failCount);
+            checkFail(failCount, PUT, cacheKey);
         }
     }
 
@@ -47,6 +47,7 @@ public class RedisAccessSerial extends RedisAccessBase {
 
         List<DecoratedJedisPool> jedisPools = getJedisPools(redisIds);
 
+        @SuppressWarnings("unchecked")
         Map<byte[], byte[]>[] redisDataList = new Map[redisIds.size()];
 
         int failCount = 0;
@@ -56,12 +57,12 @@ public class RedisAccessSerial extends RedisAccessBase {
                 final String key = cacheKey + SEP + i;
                 RedisGetAll redisGetAll = new RedisGetAll(jedis, key, redisDataList, i);
 
-                failCount += accessRedisAndCheckResult(redisGetAll, key);
+                failCount += accessRedisAndCheckResult(redisGetAll);
             } else {
                 redisDataList[i] = null;
                 failCount++;
             }
-            checkFail(failCount);
+            checkFail(failCount, GET, cacheKey);
         }
 
         return convert(redisDataList);
@@ -83,12 +84,12 @@ public class RedisAccessSerial extends RedisAccessBase {
                 String key = cacheKey + SEP + i;
                 RedisGetChunk redisGetChunk = new RedisGetChunk(jedis, key, field, redisDataArray, i);
 
-                failCount += accessRedisAndCheckResult(redisGetChunk, key);
+                failCount += accessRedisAndCheckResult(redisGetChunk);
             } else {
                 redisDataArray[i] = null;
                 failCount++;
             }
-            checkFail(failCount);
+            checkFail(failCount, GET_CHUNK, cacheKey);
         }
         return convertChunk(redisDataArray, chunkSize);
     }
@@ -97,6 +98,7 @@ public class RedisAccessSerial extends RedisAccessBase {
     public Map<Long, Integer> getChunkPosAndSize(List<Integer> redisIds, String cacheKey) throws ECFileCacheException {
 
         List<DecoratedJedisPool> jedisPools = getJedisPools(redisIds);
+        @SuppressWarnings("unchecked")
         Set<byte[]>[] redisFields = new Set[jedisPools.size()];
 
         int failCount = 0;
@@ -107,12 +109,12 @@ public class RedisAccessSerial extends RedisAccessBase {
                 final String key = cacheKey + SEP + Integer.toString(i);
                 RedisHKeys redisHKeys = new RedisHKeys(jedis, key, redisFields, i);
 
-                failCount += accessRedisAndCheckResult(redisHKeys, key);
+                failCount += accessRedisAndCheckResult(redisHKeys);
             } else {
                 redisFields[i] = null;
                 failCount++;
             }
-            checkFail(failCount);
+            checkFail(failCount, GET_CHUNK_POS_AND_SIZE, cacheKey);
         }
         return convertChunkPosAndSize(redisFields);
     }
@@ -134,14 +136,13 @@ public class RedisAccessSerial extends RedisAccessBase {
         }
     }
 
-    private int accessRedisAndCheckResult(RedisBase redisCommand, String key) throws ECFileCacheException {
+    private int accessRedisAndCheckResult(RedisBase redisCommand) throws ECFileCacheException {
         try {
             if (0 == redisCommand.call()) {
                 return 0;
             }
-        } catch (Exception e) {
-            String verbose = "access redis fail for key:" + key;
-            LOGGER.error(verbose, e.getMessage());
+        } catch (Exception ignore) {
+            // exception has been processed in RedisBase.call()
         }
 
         return 1;

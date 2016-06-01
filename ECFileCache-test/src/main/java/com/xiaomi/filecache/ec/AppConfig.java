@@ -12,11 +12,13 @@ import java.io.IOException;
 import java.util.Properties;
 
 public class AppConfig {
-        private static final Logger LOGGER = LoggerFactory.getLogger(AppConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AppConfig.class);
 
     int threadNum = 12;
     int fileSize = 64 * 1024;
+    short clusterId = 20002;
     boolean getStream = false;
+    String redisAddress = "localhost";
 
     public AppConfig(String[] args) {
         String profile = null;
@@ -57,7 +59,12 @@ public class AppConfig {
         fileSize= Integer.parseInt(prop.getProperty("file.size", "1024"));
         Validate.isTrue(fileSize> 0);
 
+        clusterId = Short.parseShort(prop.getProperty("cluster.id", "20002"));
+        Validate.isTrue(clusterId > 0);
+
         getStream = Boolean.parseBoolean(prop.getProperty("get.stream", "false"));
+
+        redisAddress = prop.getProperty("redis.address", "localhost");
 
         System.out.println(toString());
         System.out.println("========== load config finished =============");
@@ -68,6 +75,7 @@ public class AppConfig {
         return "AppConfig{" +
                 "threadNum=" + threadNum +
                 ", fileSize=" + fileSize +
+                ", clusterId=" + clusterId +
                 ", getStream=" + getStream +
                 '}';
     }

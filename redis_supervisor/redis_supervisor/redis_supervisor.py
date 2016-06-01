@@ -1,49 +1,127 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 #
+import sys
+import os
 import signal
 import logging
-import sys
+import time
+import subprocess
 
-from config import Config
-from redis_daemon import RedisDaemon
-from redis_perf_monitor import RedisPerfMonitor
-from zk_helper import ZkHelper
+from utils.config import Config
+from zk_helper import ZkHelperException
 from utils.log_util import get_logger_name
+from zk_helper import ZkHelper
 
 LOGGER = logging.getLogger(get_logger_name(__name__))
 
+REDIS_SERVER_START_FREEZE_TIME = 3
+REDIS_SERVER_STOP_FREEZE_TIME = 3
+
+
 class Supervisor:
     def __init__(self, config):
-        zk_client = ZkHelper(config.get_zk_addresses(), int(config.get_zk_timeout()), config.get_zk_root(),
-                             config.get_redis_address())
+        self.__zk_client = ZkHelper(config.get_zk_addresses(), int(config.get_zk_timeout()), config.get_zk_root(),
+                                    config.get_redis_address())
 
-        [host, port] = config.get_redis_address().split(":")
-        redis_monitor = RedisPerfMonitor(host, port, config.get_enable_perf_monitor(), config.get_redis_perf_tags())
+        self.__redis_bin = config.get_redis_bin()
+        self.__redis_conf = config.get_redis_conf()
+        self.__redis_address = config.get_redis_address()
 
-        self.__redis = RedisDaemon(config, zk_client, redis_monitor)
+        self.__redis_process = None
+        self.__stopped = False
 
     def register_signal_handlers(self):
+        """ 定义信号的处理函数
         """
-        定义信号的处理函数，以支持meta server的退出控制
-        """
-        LOGGER.info("will register sigterm handler")
+        LOGGER.info("register sigterm handler")
         signal.signal(signal.SIGTERM, self.terminate_handler)
+        signal.signal(signal.SIGINT, self.terminate_handler)
         signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
     def terminate_handler(self, signum, frame):
-        """
-        处理退出事件
+        """ 处理退出事件
         """
         LOGGER.info("terminate event is triggered")
-        self.__redis.stop_redis_server(True)
+        self.stop_all(True)
 
     def run(self):
-        self.__redis.start()
-        self.__redis.join()
+        """ run redis server, and register server address to zk
+        """
+        self.__zk_client.start()
+
+        if not self.__stopped:
+            LOGGER.info("try to start redis server")
+
+            # start redis server and keep it running
+            if not os.path.exists("logs"):
+                os.mkdir("logs")
+            out_log_name = "logs/redis-out-%s.log" % self.__redis_address
+            out_log = open(out_log_name, "a")
+            err_log = open("logs/redis-err-%s.log" % self.__redis_address, "a")
+
+            commands = [self.__redis_bin, self.__redis_conf]
+            self.__redis_process = subprocess.Popen(commands, bufsize=1024 * 1024, stdout=out_log, stderr=err_log)
+
+            time.sleep(REDIS_SERVER_START_FREEZE_TIME)
+
+            out_log_check = open(out_log_name, "r")
+            last_line = ""
+            for line in out_log_check:
+                last_line = line
+
+            if last_line.find("The server is now ready to accept connections on port") > 0:
+                LOGGER.info("start redis server succeed, pid:%d", self.__redis_process.pid)
+                self.__zk_client.set_supervisor(self)
+                self.__zk_client.register_redis()
+            else:
+                LOGGER.error("start redis server failed, pid:%d", self.__redis_process.pid)
+
+            ret_code = self.__redis_process.wait()
+            self.__redis_process = None
+            LOGGER.warn("redis server stopped, code:%d", ret_code)
+
+            self.stop_all()
+
+    def stop_all(self, blocking=False):
+        """ 设置停止位，并向redis server进程发送停止信号
+        """
+        if self.__stopped:
+            return
+
+        self.__stopped = True
+
+        self.__zk_client.stop()
+
+        if self.__redis_process:
+            try:
+                LOGGER.info("try to stop redis server")
+                self.__redis_process.send_signal(signal.SIGTERM)
+
+                if blocking:
+                    # 等待直到完全退出
+                    LOGGER.info("wait until redis server quit")
+                    time.sleep(REDIS_SERVER_STOP_FREEZE_TIME)
+
+                    ret_code = self.__redis_process.poll()
+                    LOGGER.info("redis server exit with code:%d", ret_code)
+
+                    if ret_code is None:
+                        LOGGER.warning("redis server of config[%s] do not exit in time", self.__redis_conf)
+
+                        # 直接kill相应的进程
+                        self.__redis_process.kill()
+                        LOGGER.warning("killed redis server")
+
+                    self.__redis_process = None
+
+            except OSError, e:
+                LOGGER.error("redis server already exit. %s", str(e))
+
+
 
 #
-# will read config from command line, then start meta server and monitor it
+# will read config from command line, then start redis and monitor it
 #
 if __name__ == "__main__":
     if len(sys.argv) < 3:
@@ -54,4 +132,12 @@ if __name__ == "__main__":
 
     supervisor = Supervisor(Config.instance())
     supervisor.register_signal_handlers()
-    supervisor.run()
+
+    try:
+        supervisor.run()
+    except ZkHelperException, e:
+        LOGGER.exception("zk helper exception:")
+
+    supervisor.stop_all(True)
+
+    LOGGER.warn("Exit. Bye bye")

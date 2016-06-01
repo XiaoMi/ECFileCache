@@ -5,8 +5,8 @@ import com.xiaomi.filecache.ec.exceptions.ECFileCacheException;
 import com.xiaomi.filecache.ec.redis.RedisAccessBase;
 import com.xiaomi.filecache.ec.utils.Pair;
 import com.xiaomi.filecache.thrift.FileCacheKey;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,17 +32,18 @@ public class ECFileCacheInputStream extends InputStream {
     private final List<Integer> redisIds;
 
     private int nextChunkPos = 0;
+    final private InputStream endChunkStream;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ECFileCacheInputStream.class.getName());
 
-    public ECFileCacheInputStream(FileCacheKey cacheKey, Map<Long, Integer> chunkPosAndSize, RedisAccessBase redisAccess, List<Integer> redisIds) {
-        Validate.isTrue(cacheKey.isSetFileSize());
-
+    public ECFileCacheInputStream(FileCacheKey cacheKey, Map<Long, Integer> chunkPosAndSize, RedisAccessBase redisAccess,
+                                  List<Integer> redisIds, InputStream stream) {
         this.key = cacheKey.getUuid();
-        this.fileSize = (int)cacheKey.getFileSize();
+        this.fileSize = (int) cacheKey.getFileSize();
         this.chunkPosAndSize = chunkPosAndSize;
         this.redisAccess = redisAccess;
         this.redisIds = redisIds;
+        this.endChunkStream = stream;
     }
 
     @Override
@@ -133,12 +134,39 @@ public class ECFileCacheInputStream extends InputStream {
             return null;
         }
 
+        byte[] buffer;
         long chunkPos = nextChunkPos;
         Integer size = chunkPosAndSize.get(chunkPos);
         if (size == null) {
-            return null;
+            if (endChunkStream == null) {
+                return null;
+            }
+
+            try {
+                buffer = IOUtils.toByteArray(endChunkStream);
+            } catch (IOException e) {
+                String verbose = "read end chunk stream data exception";
+                LOGGER.error(verbose, e);
+                throw new ECFileCacheException(verbose, e);
+            }
+        } else {
+            buffer = getDataFromRedis(chunkPos, size);
         }
 
+        nextChunkPos += buffer.length;
+        if (nextChunkPos > fileSize) {
+            buffer = Arrays.copyOf(buffer, fileSize - (int) chunkPos);
+
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(String.format("Trim padding. padded length [%d], available length [%d]",
+                        buffer.length, fileSize - (int) chunkPos));
+            }
+        }
+
+        return buffer;
+    }
+
+    private byte[] getDataFromRedis(long chunkPos, int size) throws ECFileCacheException {
         long startTime = System.currentTimeMillis();
         Pair<byte[][], int[]> pair;
         pair = redisAccess.getChunk(key, chunkPos, size, redisIds);
@@ -156,16 +184,7 @@ public class ECFileCacheInputStream extends InputStream {
             LOGGER.error(verbose);
             throw new ECFileCacheException(verbose);
         }
-        byte[] buffer = eCodec.decode(chunk, erasures);
-
-        nextChunkPos += buffer.length;
-        if (nextChunkPos > fileSize) {
-            LOGGER.debug(String.format("Trim padding. padded length [%d], available length [%d]",
-                    buffer.length, fileSize - (int) chunkPos));
-            buffer = Arrays.copyOf(buffer, fileSize - (int) chunkPos);
-        }
-
-        return buffer;
+        return eCodec.decode(chunk, erasures);
     }
 
     @Override

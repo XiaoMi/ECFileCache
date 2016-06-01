@@ -15,12 +15,12 @@ public class ECodec {
     private final ErasureCodec codec;
     public static final int WORD_SIZE = 8;
     public static final int PACKET_SIZE = 1024;
-    public static final int MIN_BLOCK_LEN = WORD_SIZE * PACKET_SIZE;
     public static final byte VERSION = (byte) 1;
 
     public static final int DATA_BLOCK_NUM = 8;
     public static final int CODING_BLOCK_NUM = 3;
     public static final int EC_BLOCK_NUM = DATA_BLOCK_NUM + CODING_BLOCK_NUM;
+    public static final int MIN_DATA_LEN = WORD_SIZE * PACKET_SIZE * DATA_BLOCK_NUM;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ECodec.class.getName());
 
@@ -50,8 +50,8 @@ public class ECodec {
             throw new ECFileCacheException(verbose);
         }
 
-        if (data.length % MIN_BLOCK_LEN != 0) {
-            String verbose = String.format("invalid data, length of data must be multiple of %d", MIN_BLOCK_LEN);
+        if (data.length % MIN_DATA_LEN != 0) {
+            String verbose = String.format("invalid data, length of data must be multiple of %d", MIN_DATA_LEN);
             LOGGER.error(verbose);
             throw new ECFileCacheException(verbose);
         }
@@ -61,7 +61,6 @@ public class ECodec {
 
         byte[][] codingBlock;
 
-        long startTime = System.currentTimeMillis();
         synchronized (ECodec.class) {
             codingBlock = codec.encode(dataBlock);
         }
@@ -82,7 +81,6 @@ public class ECodec {
         if (checkErasuresAndGetMin(erasures) < DATA_BLOCK_NUM) {
             byte[][] codingBlock = DataUtil.getPartArray2D(data, -CODING_BLOCK_NUM);
 
-            long startTime = System.currentTimeMillis();
             codec.decode(erasures, dataBlock, codingBlock);
         }
         return DataUtil.array2DToArray(dataBlock);

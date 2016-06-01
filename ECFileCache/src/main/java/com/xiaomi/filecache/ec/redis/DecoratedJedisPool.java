@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.Protocol;
 
 public class DecoratedJedisPool extends JedisPool {
 
@@ -39,7 +40,11 @@ public class DecoratedJedisPool extends JedisPool {
     }
 
     private DecoratedJedisPool(JedisPoolConfig jedisPoolConfig, String host, int port) {
-        super(jedisPoolConfig, host, port, Config.getInstance().getJedisSocketTimeoutMs(), Config.getInstance().getRedisPassword());
+        super(jedisPoolConfig, host, port,
+                Config.getInstance().getJedisConnectTimeoutMs(),
+                Config.getInstance().getJedisSocketTimeoutMs(),
+                Config.getInstance().getRedisPassword(),
+                Protocol.DEFAULT_DATABASE, null);
 
         this.host = host;
         this.port = port;

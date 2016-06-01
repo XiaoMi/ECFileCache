@@ -31,8 +31,8 @@ public class ECFileCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ECFileCache.class.getName());
 
-    public ECFileCache() {
-        monitor = ZKChildMonitor.getInstance();
+    public ECFileCache(short clusterId, short partitionId) {
+        monitor = ZKChildMonitor.getInstance(clusterId, partitionId);
     }
 
     /**
@@ -44,10 +44,10 @@ public class ECFileCache {
      */
     public String createFileCacheKey(Integer size) throws ECFileCacheException {
 
-        int clusterSize = monitor.get().size();
+        int clusterSize = monitor.get().getKeyedPool().size();
 
         String cacheKey = UUID.randomUUID().toString().replace("-", "");
-        int offset = genDeviceOffset();
+        int offset = genDeviceOffset(clusterSize);
 
         FileCacheKey fileCacheKey = new FileCacheKey(cacheKey,
                 ECodec.VERSION,
@@ -62,8 +62,7 @@ public class ECFileCache {
         return Base64.encodeBase64URLSafeString(bytes);
     }
 
-    private int genDeviceOffset() throws ECFileCacheException {
-        int clusterSize = monitor.get().size();
+    private int genDeviceOffset(int clusterSize) throws ECFileCacheException {
         List<Integer> deviceIds = new ArrayList<Integer>(monitor.get().getKeyedPool().keySet());
 
         Random random = new Random();
@@ -71,20 +70,17 @@ public class ECFileCache {
         do {
             int offset = random.nextInt(clusterSize);
 
-            boolean erased;
             int i;
-            for (i = 0, erased = false; i < ECodec.EC_BLOCK_NUM; ++i) {
-                if (!deviceIds.contains((offset + i) % clusterSize)) {
-                    if (retry < Config.getInstance().getTolerateOneErasedDeviceAfterRetry()) {
-                        break;
-                    } else if (erased) {
-                        break;
-                    }
-                    erased = true;
+            int count = 0;
+            for (i = 0; i < ECodec.EC_BLOCK_NUM; ++i) {
+                if (deviceIds.contains((offset + i) % clusterSize)) {
+                    ++count;
                 }
             }
 
-            if (i >= ECodec.EC_BLOCK_NUM) {
+            if (count >= ECodec.EC_BLOCK_NUM) {
+                return offset;
+            } else if (retry >= Config.getInstance().getTolerateOneErasedDeviceAfterRetry() && count >= ECodec.DATA_BLOCK_NUM) {
                 return offset;
             }
 
@@ -117,10 +113,9 @@ public class ECFileCache {
             byte[] data = IOUtils.toByteArray(inputStream);
             nextChunkPos = chunkPos + data.length;
 
-            if (nextChunkPos >= fileCacheKey.getFileSize() && data.length % ECodec.MIN_BLOCK_LEN != 0) {
+            if (nextChunkPos >= fileCacheKey.getFileSize() && data.length % ECodec.MIN_DATA_LEN != 0) {
                 // padding the last chunk if need
-                int paddingLength = data.length - (data.length % (ECodec.MIN_BLOCK_LEN * ECodec.DATA_BLOCK_NUM))
-                        + ECodec.MIN_BLOCK_LEN * ECodec.DATA_BLOCK_NUM;
+                int paddingLength = data.length - (data.length % ECodec.MIN_DATA_LEN) + ECodec.MIN_DATA_LEN;
 
                 String verbose = String.format("padding data, origin length [%d], padding length [%d]",
                         data.length, paddingLength);
@@ -139,6 +134,8 @@ public class ECFileCache {
             String verbose = "read inputStream exception";
             LOGGER.error(verbose, e);
             throw new ECFileCacheException(verbose, e);
+        } finally {
+            IOUtils.closeQuietly(inputStream);
         }
         return nextChunkPos;
     }
@@ -202,12 +199,9 @@ public class ECFileCache {
             return null;
         }
 
-        // if fileSize is not set, caller should trim the padding data
-        if (fileCacheKey.isSetFileSize()) {
-            int fileSize = (int) fileCacheKey.getFileSize();
-            if (data.length > fileSize) {
-                data = Arrays.copyOf(data, fileSize);
-            }
+        int fileSize = (int) fileCacheKey.getFileSize();
+        if (data.length > fileSize) {
+            data = Arrays.copyOf(data, fileSize);
         }
 
         return data;
@@ -217,17 +211,27 @@ public class ECFileCache {
      * 获取文件的数据流
      *
      * @param fileCacheKeyStr 文件缓存标识
-     * @return            文件的数据流，本地只缓存一个chunk大小，每次read操作时从redis读取数据
+     * @return 文件的数据流，本地只缓存一个chunk大小，每次read操作时从redis读取数据
      */
     public InputStream asInputStream(final String fileCacheKeyStr) throws ECFileCacheException {
+        return asInputStream(fileCacheKeyStr, null);
+    }
 
+    /**
+     * 获取文件的数据流
+     *
+     * @param fileCacheKeyStr 文件缓存标识
+     * @param endChunkStream 文件最后一个chunk的数据
+     * @return 文件的数据流，本地只缓存一个chunk大小，每次read操作时从redis读取数据
+     */
+    public InputStream asInputStream(final String fileCacheKeyStr, InputStream endChunkStream) throws ECFileCacheException {
         FileCacheKey fileCacheKey = SerializationHelper.toThriftObject(FileCacheKey.class, Base64.decodeBase64(fileCacheKeyStr));
         Validate.isTrue(fileCacheKey.getVersion() == ECodec.VERSION);
 
         List<Integer> redisIds = getRedisIds(fileCacheKey);
 
         Map<Long, Integer> chunkPosAndSize = monitor.get().getChunkPosAndSize(redisIds, fileCacheKey.getUuid());
-        return new ECFileCacheInputStream(fileCacheKey, chunkPosAndSize, monitor.get(), redisIds);
+        return new ECFileCacheInputStream(fileCacheKey, chunkPosAndSize, monitor.get(), redisIds, endChunkStream);
     }
 
     /**
@@ -241,6 +245,21 @@ public class ECFileCache {
 
         List<Integer> redisIds = getRedisIds(fileCacheKey);
         monitor.get().delete(fileCacheKey.getUuid(), redisIds);
+    }
+
+    public void putExtraInfo(final String keyStr, byte[] data) {
+
+        int redisId = genRedisId(keyStr);
+        monitor.get().putInfo(redisId, keyStr, data);
+    }
+
+    public byte[] getExtraInfo(final String keyStr) {
+        int redisId = genRedisId(keyStr);
+        return monitor.get().getInfo(redisId, keyStr);
+    }
+
+    private int genRedisId(String str) {
+        return Math.abs(str.hashCode()) % monitor.get().getKeyedPool().size();
     }
 
     public RedisAccessBase getRedisAccess() {
