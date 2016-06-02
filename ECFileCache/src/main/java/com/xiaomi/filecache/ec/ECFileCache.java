@@ -80,7 +80,7 @@ public class ECFileCache {
 
             if (count >= ECodec.EC_BLOCK_NUM) {
                 return offset;
-            } else if (retry >= Config.getInstance().getTolerateOneErasedDeviceAfterRetry() && count >= ECodec.DATA_BLOCK_NUM) {
+            } else if (retry >= Config.getInstance().getTolerateErasedDeviceAfterRetry() && count >= ECodec.DATA_BLOCK_NUM) {
                 return offset;
             }
 
@@ -259,7 +259,9 @@ public class ECFileCache {
     }
 
     private int genRedisId(String str) {
-        return Math.abs(str.hashCode()) % monitor.get().getKeyedPool().size();
+        int hash = str.hashCode();
+        int key = (hash == Integer.MIN_VALUE) ? 0 : Math.abs(hash);
+        return key % monitor.get().getKeyedPool().size();
     }
 
     public RedisAccessBase getRedisAccess() {

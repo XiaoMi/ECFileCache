@@ -11,6 +11,5 @@ gen-loc
 core
 filtercondition
 pushed.log
-test_users.txt
 *.pyc
 *.log*

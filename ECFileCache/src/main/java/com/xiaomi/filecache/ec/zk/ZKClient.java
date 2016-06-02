@@ -17,12 +17,13 @@ import java.util.List;
 import java.util.Properties;
 
 public class ZKClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
+
     private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
     private static final String SLASH = "/";
     private static final int SESSION_TIMEOUT = 30000;
     private static final int CONNECTION_TIMEOUT = 30000;
 
-    private static Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
     private final ZkClient client;
 
     public ZKClient(String servers) {
@@ -77,6 +78,6 @@ public class ZKClient {
     }
 
     private String getRealPath(String path) {
-        return path.equals("/") ? path : StringUtils.removeEnd(path, SLASH);
+        return SLASH.equals(path) ? path : StringUtils.removeEnd(path, SLASH);
     }
 }

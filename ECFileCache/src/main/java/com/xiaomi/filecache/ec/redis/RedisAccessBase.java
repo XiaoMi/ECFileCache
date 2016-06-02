@@ -53,16 +53,16 @@ public abstract class RedisAccessBase {
         }
     }
 
-    abstract public void put(List<Integer> redisIds, String cacheKey, long fieldKey, final byte[][] chunks) throws ECFileCacheException;
+    public abstract void put(List<Integer> redisIds, String cacheKey, long fieldKey, final byte[][] chunks) throws ECFileCacheException;
 
-    abstract public List<Pair<byte[][], int[]>> get(List<Integer> redisIds, String cacheKey) throws ECFileCacheException;
+    public abstract List<Pair<byte[][], int[]>> get(List<Integer> redisIds, String cacheKey) throws ECFileCacheException;
 
-    abstract public Pair<byte[][], int[]> getChunk(String cacheKey, long chunkPos, int chunkSize, List<Integer> redisIds)
+    public abstract Pair<byte[][], int[]> getChunk(String cacheKey, long chunkPos, int chunkSize, List<Integer> redisIds)
             throws ECFileCacheException;
 
-    abstract public Map<Long, Integer> getChunkPosAndSize(List<Integer> redisIds, String cacheKey) throws ECFileCacheException;
+    public abstract Map<Long, Integer> getChunkPosAndSize(List<Integer> redisIds, String cacheKey) throws ECFileCacheException;
 
-    abstract public void delete(String cacheKey, List<Integer> redisIds) throws ECFileCacheException;
+    public abstract void delete(String cacheKey, List<Integer> redisIds) throws ECFileCacheException;
 
     public void putInfo(int redisId, String cacheKey, final byte[] data) {
         DecoratedJedisPool jedisPool = keyedPool.get(redisId);
@@ -234,7 +234,7 @@ public abstract class RedisAccessBase {
 
         for (String chunkPosAndSizeStr : chunkPosSizeMap.keySet()) {
 
-            String toks[] = chunkPosAndSizeStr.split(SEP);
+            String[] toks = chunkPosAndSizeStr.split(SEP);
             Validate.isTrue(toks.length == 2);
 
             long chunkPos = Long.parseLong(toks[0]);
@@ -272,7 +272,7 @@ public abstract class RedisAccessBase {
         for (Map.Entry<String, Integer> entry : chunkPosAndSizeCount.entrySet()) {
             if (entry.getValue() >= ECodec.DATA_BLOCK_NUM) {
 
-                String toks[] = entry.getKey().split(SEP);
+                String[] toks = entry.getKey().split(SEP);
                 Validate.isTrue(toks.length == 2);
 
                 long chunkPos = Long.parseLong(toks[0]);

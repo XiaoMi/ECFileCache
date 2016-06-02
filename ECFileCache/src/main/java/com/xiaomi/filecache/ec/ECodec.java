@@ -12,6 +12,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class ECodec {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ECodec.class.getName());
+
     private final ErasureCodec codec;
     public static final int WORD_SIZE = 8;
     public static final int PACKET_SIZE = 1024;
@@ -22,16 +24,6 @@ public class ECodec {
     public static final int EC_BLOCK_NUM = DATA_BLOCK_NUM + CODING_BLOCK_NUM;
     public static final int MIN_DATA_LEN = WORD_SIZE * PACKET_SIZE * DATA_BLOCK_NUM;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ECodec.class.getName());
-
-    private static class ECodecHolder {
-        static final ECodec INSTANCE = new ECodec();
-    }
-
-    public static ECodec getInstance() {
-        return ECodecHolder.INSTANCE;
-    }
-
     private ECodec() {
         codec = new ErasureCodec.Builder(ErasureCodec.Algorithm.Cauchy_Reed_Solomon)
                 .dataBlockNum(DATA_BLOCK_NUM)
@@ -41,6 +33,16 @@ public class ECodec {
                 .good(true)
                 .build();
     }
+
+    private static class ECodecHolder {
+        static final ECodec INSTANCE = new ECodec();
+    }
+
+    public static ECodec getInstance() {
+        return ECodecHolder.INSTANCE;
+    }
+
+
 
     public byte[][] encode(byte[] data) throws ECFileCacheException {
 

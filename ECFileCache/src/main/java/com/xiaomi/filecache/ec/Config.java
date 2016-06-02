@@ -11,7 +11,7 @@ public class Config {
     static final Logger LOGGER = LoggerFactory.getLogger(Config.class.getName());
 
     private static final String SELECT_OFFSET_MAX_RETRY = "select_offset_max_retry";
-    private static final String TOLERATE_ONE_ERASED_DEVICE_AFTER_RETRY = "tolerate_one_erased_device_after_retry";
+    private static final String TOLERATE_ERASED_DEVICE_AFTER_RETRY = "tolerate_erased_device_after_retry";
     private static final String JEDIS_POOL_MAX = "jedis_pool_max";
     private static final String JEDIS_SOCKET_TIMEOUT_MS = "jedis_socket_timeout_ms";
     private static final String JEDIS_CONNECT_TIMEOUT_MS = "jedis_connect_timeout_ms";
@@ -22,7 +22,7 @@ public class Config {
     private static final String REDIS_ACCESS_THREAD_NUM= "redis_access_thread_num";
 
     private int selectOffsetMaxRetry;
-    private int tolerateOneErasedDeviceAfterRetry;
+    private int tolerateErasedDeviceAfterRetry;
     private int jedisPoolMax;
     private int jedisSocketTimeoutMs;
     private int jedisConnectTimeoutMs;
@@ -32,28 +32,12 @@ public class Config {
     private int redisAccessThreadNum;
     private String redisPassword;
 
-    private volatile static Config config = null;
-
-    public static void init(Properties props) {
-        if (config == null) {
-            synchronized (Config.class) {
-                if (config == null) {
-                    config = new Config(props);
-                    LOGGER.info("init config done:" + config.toString());
-                }
-            }
-        }
-    }
-
-    public static Config getInstance() {
-        Validate.isTrue(config != null);
-        return config;
-    }
+    private static volatile Config config = null;
 
     private Config(Properties props) {
         selectOffsetMaxRetry = Integer.parseInt(props.getProperty(SELECT_OFFSET_MAX_RETRY, "5"));
-        tolerateOneErasedDeviceAfterRetry = Integer.parseInt(props.getProperty(TOLERATE_ONE_ERASED_DEVICE_AFTER_RETRY, "3"));
-        Validate.isTrue(tolerateOneErasedDeviceAfterRetry > 0 && selectOffsetMaxRetry >= tolerateOneErasedDeviceAfterRetry);
+        tolerateErasedDeviceAfterRetry = Integer.parseInt(props.getProperty(TOLERATE_ERASED_DEVICE_AFTER_RETRY, "3"));
+        Validate.isTrue(tolerateErasedDeviceAfterRetry > 0 && selectOffsetMaxRetry >= tolerateErasedDeviceAfterRetry);
 
         jedisPoolMax = Integer.parseInt(props.getProperty(JEDIS_POOL_MAX, "20"));
         jedisSocketTimeoutMs = Integer.parseInt(props.getProperty(JEDIS_SOCKET_TIMEOUT_MS, "50"));
@@ -73,12 +57,31 @@ public class Config {
         redisPassword = props.getProperty(REDIS_PASSWORD, null);
     }
 
+
+    public static void init(Properties props) {
+        if (config == null) {
+            synchronized (Config.class) {
+                if (config == null) {
+                    config = new Config(props);
+                    LOGGER.info("init config done:" + config.toString());
+                }
+            }
+        }
+    }
+
+    public static Config getInstance() {
+        Validate.isTrue(config != null);
+        return config;
+    }
+
+
+
     public int getSelectOffsetMaxRetry() {
         return selectOffsetMaxRetry;
     }
 
-    public int getTolerateOneErasedDeviceAfterRetry() {
-        return tolerateOneErasedDeviceAfterRetry;
+    public int getTolerateErasedDeviceAfterRetry() {
+        return tolerateErasedDeviceAfterRetry;
     }
 
     public int getJedisPoolMax() {
@@ -117,7 +120,7 @@ public class Config {
     public String toString() {
         return "Config{" +
                 "selectOffsetMaxRetry=" + selectOffsetMaxRetry +
-                ", tolerateOneErasedDeviceAfterRetry=" + tolerateOneErasedDeviceAfterRetry +
+                ", tolerateErasedDeviceAfterRetry=" + tolerateErasedDeviceAfterRetry +
                 ", jedisPoolMax=" + jedisPoolMax +
                 ", jedisSocketTimeoutMs=" + jedisSocketTimeoutMs +
                 ", checkJedisResultTimeoutMs=" + checkJedisResultTimeoutMs +

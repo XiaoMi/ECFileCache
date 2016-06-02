@@ -14,10 +14,6 @@ LOGGER_ROOT = "app"
 LOGGER_LIB_ROOT = "lib"
 LOGGER_TEST_ROOT = "test"
 
-LOG_DIR = "/data/soft/redis-supervisor/logs/"
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
-
 LOGGER_CONF_FILE = "conf/log4p.conf"
 logging.config.fileConfig(LOGGER_CONF_FILE)
 

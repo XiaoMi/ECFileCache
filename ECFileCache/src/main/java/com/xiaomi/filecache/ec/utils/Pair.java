@@ -5,23 +5,24 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
-public final class Pair<TFirst, TSecond> {
-    private TFirst first;
-    private TSecond second;
+public final class Pair<T, U> {
+    private T first;
+    private U second;
 
-    private Pair(TFirst first, TSecond second) {
+    private Pair(T first, U second) {
         this.first = first;
         this.second = second;
     }
 
-    public TFirst getFirst() {
+    public T getFirst() {
         return this.first;
     }
 
-    public TSecond getSecond() {
+    public U getSecond() {
         return this.second;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if(this == obj) {
             return true;
@@ -33,15 +34,17 @@ public final class Pair<TFirst, TSecond> {
         }
     }
 
+    @Override
     public int hashCode() {
         return (new HashCodeBuilder()).append(this.first).append(this.second).toHashCode();
     }
 
+    @Override
     public String toString() {
         return (new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)).append(this.first).append(this.second).toString();
     }
 
-    public static <TFirst, TSecond> Pair<TFirst, TSecond> create(TFirst first, TSecond second) {
-        return new Pair(first, second);
+    public static <T, U> Pair<T, U> create(T first, U second) {
+        return new Pair<T, U>(first, second);
     }
 }

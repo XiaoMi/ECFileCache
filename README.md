@@ -8,7 +8,7 @@ ECFileCache allow you read cached file correctly while several data blocks erase
 Install gf-complete, jerasure. see java-erasure/README.md. (Thanks WuZesheng)
 
 Install redis (>2.8.5).
-Install Python(>2.6.6), pip-python install kazoo redis requests.
+Install Python(>2.6.6) and library kazoo, redis.
 
 Install zookeeper.
 

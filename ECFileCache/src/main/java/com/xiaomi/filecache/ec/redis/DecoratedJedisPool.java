@@ -19,6 +19,17 @@ public class DecoratedJedisPool extends JedisPool {
     private String host;
     private int port;
 
+    private DecoratedJedisPool(JedisPoolConfig jedisPoolConfig, String host, int port) {
+        super(jedisPoolConfig, host, port,
+                Config.getInstance().getJedisConnectTimeoutMs(),
+                Config.getInstance().getJedisSocketTimeoutMs(),
+                Config.getInstance().getRedisPassword(),
+                Protocol.DEFAULT_DATABASE, null);
+
+        this.host = host;
+        this.port = port;
+    }
+
     public static DecoratedJedisPool create(String redisAddress)
             throws ECFileCacheException {
         String[] address = redisAddress.split(ADDRESS_SEP);
@@ -37,17 +48,6 @@ public class DecoratedJedisPool extends JedisPool {
         jedisPoolConfig.setMaxTotal(Config.getInstance().getJedisPoolMax());
 
         return new DecoratedJedisPool(jedisPoolConfig, host, port);
-    }
-
-    private DecoratedJedisPool(JedisPoolConfig jedisPoolConfig, String host, int port) {
-        super(jedisPoolConfig, host, port,
-                Config.getInstance().getJedisConnectTimeoutMs(),
-                Config.getInstance().getJedisSocketTimeoutMs(),
-                Config.getInstance().getRedisPassword(),
-                Protocol.DEFAULT_DATABASE, null);
-
-        this.host = host;
-        this.port = port;
     }
 
     public String getRedisAddress() {

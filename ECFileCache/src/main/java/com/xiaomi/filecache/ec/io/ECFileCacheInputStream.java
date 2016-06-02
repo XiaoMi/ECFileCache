@@ -32,7 +32,7 @@ public class ECFileCacheInputStream extends InputStream {
     private final List<Integer> redisIds;
 
     private int nextChunkPos = 0;
-    final private InputStream endChunkStream;
+    private final InputStream endChunkStream;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ECFileCacheInputStream.class.getName());
 
@@ -61,7 +61,7 @@ public class ECFileCacheInputStream extends InputStream {
     private void fill() throws IOException {
         checkIfClosed();
         count = pos = 0;
-        byte[] buffer = null;
+        byte[] buffer;
 
         try {
             buffer = getChunk();
@@ -84,7 +84,7 @@ public class ECFileCacheInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte b[], int off, int len) throws IOException {
+    public int read(byte[] b, int off, int len) throws IOException {
         checkIfClosed();
         if ((off | len | (off + len) | (b.length - (off + len))) < 0) {
             throw new IndexOutOfBoundsException();
@@ -112,15 +112,11 @@ public class ECFileCacheInputStream extends InputStream {
         checkIfClosed();
         int avail = count - pos;
         if (avail <= 0) {
-            // TODO read redis directly
-            /*
-            if (len >= buf.length) {
-                return redis.read(b, off, len);
-            }
-            */
             fill();
             avail = count - pos;
-            if (avail <= 0) return -1;
+            if (avail <= 0) {
+                return -1;
+            }
         }
         int cnt = (avail < len) ? avail : len;
         System.arraycopy(buf, pos, b, off, cnt);
@@ -167,7 +163,6 @@ public class ECFileCacheInputStream extends InputStream {
     }
 
     private byte[] getDataFromRedis(long chunkPos, int size) throws ECFileCacheException {
-        long startTime = System.currentTimeMillis();
         Pair<byte[][], int[]> pair;
         pair = redisAccess.getChunk(key, chunkPos, size, redisIds);
 

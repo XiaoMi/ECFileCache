@@ -18,9 +18,10 @@ import java.util.Properties;
 
 public class ZKChildMonitor implements ZKChildListener {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
+
     private static final String SLASH = "/";
-    private static final String ZK_CLUSTER_PATH_FORMAT = "/xmss/clusters/%d/filecache";
+    private static final String ZK_CLUSTER_PATH_FORMAT = "/filecache/clusters/%d";
     private static final String ZK_PARTITION_PATH_FORMAT = ZK_CLUSTER_PATH_FORMAT + "/partition_%d/pool";
     private static final String ZK_SERVERS = "zk_servers";
     private static final String CLUSTER_CONF_FILE = "/cluster.properties";
@@ -37,22 +38,6 @@ public class ZKChildMonitor implements ZKChildListener {
 
     private static volatile ZKChildMonitor instance = null;
 
-    public static ZKChildMonitor getInstance(short clusterId, short partitionId) {
-        if (instance == null) {
-            synchronized (ZKChildMonitor.class) {
-                if (instance == null) {
-                    instance = new ZKChildMonitor(clusterId, partitionId);
-                    LOGGER.info("init ZkChildMonitor with clusterId[{}]", clusterId);
-                }
-            }
-        } else {
-            Validate.isTrue(clusterId == instance.clusterId && partitionId == instance.partitionId,
-                    String.format("ZkChildMonitor initialized with id[%d], reject id[%d]", instance.clusterId, clusterId));
-        }
-        return instance;
-    }
-
-
     private ZKChildMonitor(short clusterId, short partitionId) {
 
         this.clusterId = clusterId;
@@ -66,6 +51,21 @@ public class ZKChildMonitor implements ZKChildListener {
 
         initConfig(zkClusterPath);
         initRedisAccess(zkPartitionPath);
+    }
+
+    public static ZKChildMonitor getInstance(short clusterId, short partitionId) {
+        if (instance == null) {
+            synchronized (ZKChildMonitor.class) {
+                if (instance == null) {
+                    instance = new ZKChildMonitor(clusterId, partitionId);
+                    LOGGER.info("init ZkChildMonitor with clusterId[{}]", clusterId);
+                }
+            }
+        } else {
+            Validate.isTrue(clusterId == instance.clusterId && partitionId == instance.partitionId,
+                    String.format("ZkChildMonitor initialized with id[%d], reject id[%d]", instance.clusterId, clusterId));
+        }
+        return instance;
     }
 
     private void loadZkInfos() {
