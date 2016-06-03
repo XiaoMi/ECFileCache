@@ -77,6 +77,7 @@ public class DataUtil {
         return partArray2D;
     }
 
+    /* for debug */
     public static void printLineInfo(String msg) {
         StackTraceElement ste = new Throwable().getStackTrace()[1];
         System.out.print(Thread.currentThread().getId() + ".");

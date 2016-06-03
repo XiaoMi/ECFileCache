@@ -62,36 +62,6 @@ public class ECFileCache {
         return Base64.encodeBase64URLSafeString(bytes);
     }
 
-    private int genDeviceOffset(int clusterSize) throws ECFileCacheException {
-        List<Integer> deviceIds = new ArrayList<Integer>(monitor.get().getKeyedPool().keySet());
-
-        Random random = new Random();
-        int retry = 0;
-        do {
-            int offset = random.nextInt(clusterSize);
-
-            int i;
-            int count = 0;
-            for (i = 0; i < ECodec.EC_BLOCK_NUM; ++i) {
-                if (deviceIds.contains((offset + i) % clusterSize)) {
-                    ++count;
-                }
-            }
-
-            if (count >= ECodec.EC_BLOCK_NUM) {
-                return offset;
-            } else if (retry >= Config.getInstance().getTolerateErasedDeviceAfterRetry() && count >= ECodec.DATA_BLOCK_NUM) {
-                return offset;
-            }
-
-            if (++retry >= Config.getInstance().getSelectOffsetMaxRetry()) {
-                String verbose = "can not allocate offset id for cacheKey";
-                LOGGER.error(verbose);
-                throw new ECFileCacheException(verbose);
-            }
-        } while (true);
-    }
-
     /**
      * 将数据流存储进文件缓存
      *
@@ -138,23 +108,6 @@ public class ECFileCache {
             IOUtils.closeQuietly(inputStream);
         }
         return nextChunkPos;
-    }
-
-    private List<Integer> getRedisIds(final FileCacheKey fileCacheKey) throws ECFileCacheException {
-        int offset = fileCacheKey.getDeviceOffset();
-        int clusterSize = fileCacheKey.getDeviceClusterSize();
-        if (offset < 0 || offset >= clusterSize) {
-            String verbose = String.format("invalid offset id [%d]", offset);
-            LOGGER.error(verbose);
-            throw new ECFileCacheException(verbose);
-        }
-
-        List<Integer> redisIds = new ArrayList<Integer>();
-        for (int i = 0, n = ECodec.EC_BLOCK_NUM; i < n; ++i) {
-            redisIds.add((offset + i) % clusterSize);
-        }
-
-        return redisIds;
     }
 
     /**
@@ -247,15 +200,74 @@ public class ECFileCache {
         monitor.get().delete(fileCacheKey.getUuid(), redisIds);
     }
 
+    /**
+     * 存入key-value信息
+     *
+     * @param keyStr 缓存标识
+     * @param data 数据
+     */
     public void putExtraInfo(final String keyStr, byte[] data) {
 
         int redisId = genRedisId(keyStr);
         monitor.get().putInfo(redisId, keyStr, data);
     }
 
+    /**
+     * 取出key-value信息
+     *
+     * @param keyStr 缓存标识
+     * @return 数据
+     */
     public byte[] getExtraInfo(final String keyStr) {
         int redisId = genRedisId(keyStr);
         return monitor.get().getInfo(redisId, keyStr);
+    }
+
+    private int genDeviceOffset(int clusterSize) throws ECFileCacheException {
+        List<Integer> deviceIds = new ArrayList<Integer>(monitor.get().getKeyedPool().keySet());
+
+        Random random = new Random();
+        int retry = 0;
+        do {
+            int offset = random.nextInt(clusterSize);
+
+            int i;
+            int count = 0;
+            for (i = 0; i < ECodec.EC_BLOCK_NUM; ++i) {
+                if (deviceIds.contains((offset + i) % clusterSize)) {
+                    ++count;
+                }
+            }
+
+            if (count >= ECodec.EC_BLOCK_NUM) {
+                return offset;
+            } else if (retry >= Config.getInstance().getTolerateErasedDeviceAfterRetry() && count >= ECodec.DATA_BLOCK_NUM) {
+                return offset;
+            }
+
+            if (++retry >= Config.getInstance().getSelectOffsetMaxRetry()) {
+                String verbose = "can not allocate offset id for cacheKey";
+                LOGGER.error(verbose);
+                throw new ECFileCacheException(verbose);
+            }
+        } while (true);
+    }
+
+    private List<Integer> getRedisIds(final FileCacheKey fileCacheKey) throws ECFileCacheException {
+        int offset = fileCacheKey.getDeviceOffset();
+        int clusterSize = fileCacheKey.getDeviceClusterSize();
+        if (offset < 0 || offset >= clusterSize) {
+            String verbose = String.format("invalid offset id [%d]", offset);
+            LOGGER.error(verbose);
+            throw new ECFileCacheException(verbose);
+        }
+
+        List<Integer> redisIds = new ArrayList<Integer>();
+        for (int i = 0, n = ECodec.EC_BLOCK_NUM; i < n; ++i) {
+            redisIds.add((offset + i) % clusterSize);
+        }
+
+        return redisIds;
     }
 
     private int genRedisId(String str) {
