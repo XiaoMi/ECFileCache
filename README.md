@@ -131,29 +131,29 @@
 # 分布式文件缓存使用
 
 ## 依赖
-  FileCache客户端
-    ECCodec：gf-complete, jerasure.
-  Redis缓存集群
-    Redis：redis (>2.8.5).
-    Python：Python(>2.6.6) .Python library redis and kazoo.
+*  FileCache客户端
+    *    ECCodec：gf-complete, jerasure.
+*  Redis缓存集群
+    *    Redis：redis (>2.8.5).
+    *    Python：Python(>2.6.6) .Python library redis and kazoo.
 
 ## 配置
-  redis_supervisor
-    使用配置文件supervisor.conf，指定redis可执行文件路径，zookeeper服务地址和节点路径。
-  FileCache客户端
-    配置文件cluster.properties中指定zookeeper服务器地址。访问redis相关的参数配置在zookeeper节点中。
+*  redis_supervisor
+    *    使用配置文件supervisor.conf，指定redis可执行文件路径，zookeeper服务地址和节点路径。
+*  FileCache客户端
+    *    配置文件cluster.properties中指定zookeeper服务器地址。访问redis相关的参数配置在zookeeper节点中。
 
 ## 数据写入/读出接口
-  写入数据:提供串行和并行两套接口。串行接口适合数据量大，对延时不敏感的请求；并行接口适合数据量小，要求低延时的请求。
-  读出数据:返回解码得到的原始数据的数据流。
+*  写入数据:提供串行和并行两套接口。串行接口适合数据量大，对延时不敏感的请求；并行接口适合数据量小，要求低延时的请求。
+*  读出数据:返回解码得到的原始数据的数据流。
 
 
 # 性能
-  对于1.5MB的文件，99% 延时为：
-    串行接口：写入耗时 203ms，读出耗时 56ms。
-    并行接口：写入耗时 54ms，读出耗时 32ms。
+*  对于1.5MB的文件，99% 延时为：
+    * 串行接口：写入耗时 203ms，读出耗时 56ms。
+    * 并行接口：写入耗时 54ms，读出耗时 32ms。
 
-  服务QPS只受限于客户端到Redis缓存集群的带宽。
+*  服务QPS只受限于客户端到Redis缓存集群的带宽。
 
 
 
