@@ -82,11 +82,11 @@
 ## zookeeper
   作为Redis缓存和FileCache客户端的桥梁，保存Redis集群的实时信息，供FileCache客户端使用。
 
-## Redis缓存集群
+## Redis缓存集群 (redis_supervisor目录)
   存储EC编码后的数据。
   redis_supervisor服务将Redis地址注册到zookeeper节点，并维护与zookeeper的连接、会话过期自动重连等。
 
-## FileCache客户端
+## FileCache客户端 (ECFileCache目录)
   客户端本地进行EC编码和解码。根据zookeeper中的注册信息，获取Redis集群的实时情况，写入和读出缓存数据。
 
 

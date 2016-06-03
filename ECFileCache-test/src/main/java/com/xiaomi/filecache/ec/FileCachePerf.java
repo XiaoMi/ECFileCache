@@ -34,7 +34,7 @@ public class FileCachePerf {
 
     private boolean stop = false;
 
-    private ECFileCache ECFileCache;
+    private ECFileCache fileCache;
 
     private long reportInterval = 5;
     private long reportCount = 30;
@@ -47,7 +47,7 @@ public class FileCachePerf {
     private  boolean getStream;
 
     FileCachePerf(AppConfig config) {
-        ECFileCache = new ECFileCache(config.clusterId, (short) 0);
+        fileCache = new ECFileCache(config.clusterId, (short) 0);
 
         this.threadNum = config.threadNum;
         this.getStream = config.getStream;
@@ -129,7 +129,7 @@ public class FileCachePerf {
             pool.submit(new Runnable() {
                 @Override
                 public void run() {
-                    uploadPerform(threadId, threadFileNum);
+                    uploadAndDownloadPerform(threadId, threadFileNum);
                 }
             });
         }
@@ -137,7 +137,7 @@ public class FileCachePerf {
         return pool;
     }
 
-    private void uploadPerform(int threadId, int threadFileNum) {
+    private void uploadAndDownloadPerform(int threadId, int threadFileNum) {
         byte[] buffer = new byte[fileSize];
         Random random = new Random();
         random.nextBytes(buffer);
@@ -153,7 +153,7 @@ public class FileCachePerf {
             // upload file
             InputStream inputStream = null;
             try {
-                String key = ECFileCache.createFileCacheKey(fileSize);
+                String key = fileCache.createFileCacheKey(fileSize);
 
                 // start uploadTiming
                 TimerContext uploadTiming = null;
@@ -163,7 +163,7 @@ public class FileCachePerf {
 
                 int chunkPos = 0;
                 for (byte[] chunk : chunks) {
-                    ECFileCache.putFile(key, chunkPos, new ByteArrayInputStream(chunk), 1);
+                    fileCache.putFile(key, chunkPos, new ByteArrayInputStream(chunk), 1);
                     chunkPos += chunk.length;
                 }
 
@@ -178,10 +178,10 @@ public class FileCachePerf {
                 }
                 byte[] buf;
                 if (getStream) {
-                    inputStream = ECFileCache.asInputStream(key);
+                    inputStream = fileCache.asInputStream(key);
                     buf = IOUtils.toByteArray(inputStream);
                 } else {
-                    buf = ECFileCache.getFile(key);
+                    buf = fileCache.getFile(key);
                 }
 
                 if (downloadTiming != null) {
