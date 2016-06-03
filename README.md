@@ -119,69 +119,35 @@
 
 
 
-
-# Introduction
-
-ECFileCache is a distributed file cache system that based on Erasure code.
-Cached file data store in redis.
-ECFileCache allow you read cached file correctly while several data blocks erased.
-
-## Dependency
-Install gf-complete, jerasure. see java-erasure/README.md. (Thanks WuZesheng)
-
-Install redis (>2.8.5).
-Install Python(>2.6.6) and library kazoo, redis.
-
-Install zookeeper.
-
-## Usage
-### Prepare zookeeper
-Just start a zookeeper. Do not need to create any nodes,
-redis_supervisor will create nodes automatically.
-
-### Deploy redis
-Deploy redis and python in several server,
- and redis info will be registered in zookeeper.
-
-### Use ECFileCache
-Install gf-complete, jerasure.
-Import ECFileCache in your java code.
-
-## Performance
-Read/write 1.5MB files. List 99% percentile as below.
-
-Serial interface: write 203ms, read 56ms.
-Parallel interface: write 54ms, read 32ms.
-
-
-Example:
-        short clusterId = 0;
-        short partitionId = 0;
-        ECFileCache fileCache = new ECFileCache(clusterId, partitionId);
-
-        int fileSize = 2048;
-        int chunkSize = 1024;
-        byte[] data = new byte[fileSize];
-        new Random().nextBytes(data);
-
-        // create cache key
-        String key = fileCache.createFileCacheKey(fileSize);
-
-        // put file
-        InputStream inputStream = new ByteArrayInputStream(ArrayUtils.subarray(data, 0, chunkSize));
-        fileCache.putFile(key, 0, inputStream, 0L);
-        inputStream.close();
-
-        inputStream = new ByteArrayInputStream(ArrayUtils.subarray(data, chunkSize, fileSize));
-        fileCache.putFile(key, chunkSize, inputStream, 0L);
-        inputStream.close();
-
-        // get file
-        InputStream cachedStream = fileCache.asInputStream(key);
-        byte[] cachedFile = IOUtils.toByteArray(cachedStream);
-        Assert.assertArrayEquals(data, cachedFile);
-
-        // delete file
-        fileCache.deleteFile(key);
-
+# Example
+    +------------------------------------------------------------------------------------------------
+    |  short clusterId = 0;
+    |  short partitionId = 0;
+    |  ECFileCache fileCache = new ECFileCache(clusterId, partitionId);
+    |
+    |  int fileSize = 2048;
+    |  int chunkSize = 1024;
+    |  byte[] data = new byte[fileSize];
+    |  new Random().nextBytes(data);
+    |
+    |  // create cache key
+    |  String key = fileCache.createFileCacheKey(fileSize);
+    |
+    |  // put file
+    |  InputStream inputStream = new ByteArrayInputStream(ArrayUtils.subarray(data, 0, chunkSize));
+    |  fileCache.putFile(key, 0, inputStream, 0L);
+    |  inputStream.close();
+    |
+    |  inputStream = new ByteArrayInputStream(ArrayUtils.subarray(data, chunkSize, fileSize));
+    |  fileCache.putFile(key, chunkSize, inputStream, 0L);
+    |  inputStream.close();
+    |
+    |  // get file
+    |  InputStream cachedStream = fileCache.asInputStream(key);
+    |  byte[] cachedFile = IOUtils.toByteArray(cachedStream);
+    |  Assert.assertArrayEquals(data, cachedFile);
+    |
+    |  // delete file
+    |  fileCache.deleteFile(key);
+    +------------------------------------------------------------------------------------------------
 
