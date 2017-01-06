@@ -162,10 +162,10 @@ public abstract class RedisAccessBase {
         Set<byte[]>[] redisFields = new Set[redisDataNum];
         List<Map<String, byte[]>> redisDataListTemp = new ArrayList<Map<String, byte[]>>();
 
-        // 对从redis中读出的数据进行预处理
-        // 从redis读出的数据是按照redis分组的，每组数据是一个hashmap
-        // 遍历所有分组数据，得到所有的chunkId和chunkSize，即所有hashmap的key
-        // 转换为Long并排序，为后边的拼数据做准备
+        // pre-process redis data
+        // get hashmap from every redis
+        // get all hashmap key, named all chunkId and chunkSize
+        // convert to Long and sort
         for (int i = 0; i < redisDataNum; ++i) {
             Set<byte[]> fieldSet = new HashSet<byte[]>();
             Map<String, byte[]> redisDataMap = new HashMap<String, byte[]>();
@@ -185,9 +185,8 @@ public abstract class RedisAccessBase {
 
         Map<Long, Integer> chunkPosAndSize = convertChunkPosAndSize(redisFields);
 
-        // 将以redis分组的数据转换为以chunkId为分组的数据
-        // 遍历所有chunkId，从各个redis分组数据中取出对应的数据
-        // 如果读出的数据为空或大小错误，则生成一个0填充的数组
+        // process redis data by chunkId
+        // generate a zero-filled array if chunk data is empty or chunk size is not match
         List<Pair<byte[][], int[]>> chunkAndErasuresList = new ArrayList<Pair<byte[][], int[]>>();
         for (Map.Entry<Long, Integer> entry : chunkPosAndSize.entrySet()){
             Long chunkId = entry.getKey();
@@ -289,7 +288,7 @@ public abstract class RedisAccessBase {
             long chunkPos = entry.getKey();
             int chunkSize = entry.getValue();
 
-            // 检查数据是否完整且不重复
+            // check data is continuous and have no overlap
             if (nextChunkPos != chunkPos) {
                 String verbose = String.format("lost chunk[%d], actual is [%d]", nextChunkPos, chunkPos);
                 LOGGER.error(verbose);
@@ -301,7 +300,7 @@ public abstract class RedisAccessBase {
     }
 
     static int[] adjustErasures(List<Integer> erasures, int ecBlockNum) {
-        // jerasure库需要erasures数组中至少有一个元素
+        // erasures array contains at least one element, required by libjerasure
         if (erasures.isEmpty()) {
             erasures.add(ecBlockNum - 1);
         }

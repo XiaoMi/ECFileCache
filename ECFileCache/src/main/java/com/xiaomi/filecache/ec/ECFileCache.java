@@ -36,10 +36,10 @@ public class ECFileCache {
     }
 
     /**
-     * 生成文件缓存标识
+     * create file cache key
      *
-     * @param size 文件内容的长度
-     * @return fileCacheId 文件缓存标识
+     * @param size file size
+     * @return fileCacheId. uniq file cache key
      * @throws java.security.InvalidParameterException
      */
     public String createFileCacheKey(Integer size) throws ECFileCacheException {
@@ -63,13 +63,13 @@ public class ECFileCache {
     }
 
     /**
-     * 将数据流存储进文件缓存
+     * cache file
      *
-     * @param fileCacheKeyStr 文件缓存标识
-     * @param chunkPos chunk在文件中的偏移量
-     * @param inputStream chunk内容的数据流
-     * @param crc32 用于CRC校验chunk内容
-     * @return 需要上传的下一个chunk的起始位置
+     * @param fileCacheKeyStr file cache key
+     * @param chunkPos chunk offset
+     * @param inputStream chunk content
+     * @param crc32 chunkd crc32
+     * @return start pos of next chunk
      */
 
     public long putFile(final String fileCacheKeyStr, long chunkPos, final InputStream inputStream, final long crc32)
@@ -111,10 +111,10 @@ public class ECFileCache {
     }
 
     /**
-     * 获取文件的完整数据流
+     * get whole file
      *
-     * @param fileCacheKeyStr 文件缓存标识
-     * @return            文件的完整数据流
+     * @param fileCacheKeyStr file cache key
+     * @return                entire file
      */
     public byte[] getFile(final String fileCacheKeyStr) throws ECFileCacheException {
         FileCacheKey fileCacheKey = SerializationHelper.toThriftObject(FileCacheKey.class, Base64.decodeBase64(fileCacheKeyStr));
@@ -161,21 +161,21 @@ public class ECFileCache {
     }
 
     /**
-     * 获取文件的数据流
+     * get file stream
      *
-     * @param fileCacheKeyStr 文件缓存标识
-     * @return 文件的数据流，本地只缓存一个chunk大小，每次read操作时从redis读取数据
+     * @param fileCacheKeyStr file cache key
+     * @return file stream
      */
     public InputStream asInputStream(final String fileCacheKeyStr) throws ECFileCacheException {
         return asInputStream(fileCacheKeyStr, null);
     }
 
     /**
-     * 获取文件的数据流
+     * get file stream
      *
-     * @param fileCacheKeyStr 文件缓存标识
-     * @param endChunkStream 文件最后一个chunk的数据
-     * @return 文件的数据流，本地只缓存一个chunk大小，每次read操作时从redis读取数据
+     * @param fileCacheKeyStr file cache key
+     * @param endChunkStream last chunk of file
+     * @return file stream
      */
     public InputStream asInputStream(final String fileCacheKeyStr, InputStream endChunkStream) throws ECFileCacheException {
         FileCacheKey fileCacheKey = SerializationHelper.toThriftObject(FileCacheKey.class, Base64.decodeBase64(fileCacheKeyStr));
@@ -188,9 +188,9 @@ public class ECFileCache {
     }
 
     /**
-     * 从文件缓存中删除文件
+     * delete cached file
      *
-     * @param fileCacheKeyStr 文件缓存标识
+     * @param fileCacheKeyStr file cache key
      */
     public void deleteFile(final String fileCacheKeyStr) throws ECFileCacheException {
         FileCacheKey fileCacheKey = SerializationHelper.toThriftObject(FileCacheKey.class, Base64.decodeBase64(fileCacheKeyStr));
@@ -201,10 +201,10 @@ public class ECFileCache {
     }
 
     /**
-     * 存入key-value信息
+     * cache key-value data
      *
-     * @param keyStr 缓存标识
-     * @param data 数据
+     * @param keyStr cache key
+     * @param data cache value
      */
     public void putExtraInfo(final String keyStr, byte[] data) {
 
@@ -213,10 +213,10 @@ public class ECFileCache {
     }
 
     /**
-     * 取出key-value信息
+     * get key-value data
      *
-     * @param keyStr 缓存标识
-     * @return 数据
+     * @param keyStr cache key
+     * @return cache value
      */
     public byte[] getExtraInfo(final String keyStr) {
         int redisId = genRedisId(keyStr);

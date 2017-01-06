@@ -5,7 +5,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 public class DataUtil {
 
-    // 如果有好的2d array库，可以替换掉这里的实现
+    // 2D array operation
 
     public static byte[][] arrayToArray2D(byte[] b, int k) throws ECFileCacheException {
         if (k == 0) {

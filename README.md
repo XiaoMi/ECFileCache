@@ -1,3 +1,183 @@
+# Background
+
+The files uploaded with file storage service are usually very large
+which need to be split into several fragments.
+File storage service would cache the file fragments.
+
+A real scene is file storage service buffers file fragments in local cache first.
+Until the whole file is uploaded, they are transferred to persistent storage service and saved there.
+
+Using local cache as temporary date buffer is risky.
+The cached data may get lost during service update or downtime.
+Moreover, to ensure the uploaded data is complete,
+all fragments of the file must be sent to the same server node.
+
+We developed a distributed file cache based on erasure code to resolve this issue.
+As a standalone service, distributed file cache encodes and stores the file fragments in distributed service nodes.
+
+
+# Distributed file cache
+Distributed file cache is based on Erasure Code and uses Redis for storage.
+Compared with other distributed caches, ECFileCache has no master and states for master-slave switches
+while keeping high availability.
+ECFileCache will still work even when several cache nodes fail at the same time.
+
+Data will be encoded into a number of coded blocks (data block and redundant block) with erasure code.
+The original data can be recovered even several encoded blocks are lost.
+For example, with RS erasure codes, the original data can be encoded into k data blocks and m redundant blocks.
+It can still be restored with up to m blocks missing.
+
+Redis with closed persistence is used for distributed storage.
+Redis has high read and write performance and supports multiple data structures.
+ECFileCache stores coding block to Redis hash map.
+
+ECFileCache client obtains the real-time status of the Redis cluster via zookeeper.
+The state of the Redis cluster is registered to zookeeper node.
+A new node is registered automatically at the time new Redis service is added.
+The corresponding node is deleted when signing off a Redis service.
+
+
+# architecture diagrams
+
+                         +-------------+
+                         |     user    |
+                         +------+------+
+                                |
+                                |
+             ECFileCache Client |
+            +-------------------v---------------------+
+            |                                         |
+            |             +------------+              |
+            |             |    data    |              |
+            |             +-+--------^-+              |
+            |       encode  |        |  decode        |
+            |               |        |                |
+            |   +------+ +--v---+ +--+---+ +------+   |
+            |   |data.0| |data.1| |data.2| |data.3|   | monitor redis cluster changing
+            |   +------+ +------+ +------+ +------+   |         +---------------+
+            |                                         +- - - - -+               |
+            +------+---------+--------+--------+------+         |               |
+                   |         |        |        |                |               |
+    transfer data                                               |   zookeeper   |
+                   |         |        |        |                |               |
+            +------+---------+--------+--------+------+         |               |
+            |Cache Cluster                            +- - - - -+               |
+            |   +------+ +------+ +------+ +------+   |         +---------------+
+            |   |redis0| |redis1| |redis2| |redis3|   | register redis address
+            |   +------+ +------+ +------+ +------+   |
+            |                                         |
+            +-----------------------------------------+
+
+
+# Cache Data Structure
+When data is uploaded from clients, a large file is split into several fragments,
+which can be uploaded simultaneously.
+The whole file structure is shown in fig by jointing all fragments.
+Pos is the relative location of a fragment and size is the length of the fragment.
+
+    +-----------------------------------------------------------+
+    | pos0,size0 |   data0   | pos1,size1 |   data1   | ......  |
+    +-----------------------------------------------------------+
+
+The above structure can be shown with Redis hash structure.
+
+                   Redis
+    +--------------------------------+
+    |Hash                            |
+    |                                |
+    |     Field            Value     |
+    | +------------+    +---------+  |
+    | | pos0,size0 +--> |  data0  |  |
+    | +------------+    +---------+  |
+    | +------------+    +---------+  |
+    | | pos1,size1 +--> |  data1  |  |
+    | +------------+    +---------+  |
+    |                                |
+    +--------------------------------+
+
+Erasure code is used to make sure the original file can be recovered when several service nodes fail.
+The fig below shows that a data block is encoded into two coded blocks in cache.
+
+When cache data, coded block sequence is encoded from fragments data block.
+Coded blocks are stored into corresponding Redis servers.
+
+When restore data, cached data are read from Redis servers in order.
+Original data can be restored if the number of failing node is less than the number of Erasure code redundant blocks.
+
+  Encoded data:
+
+     +------------+-----------+------------+-----------+
+     | pos0,size0 |   data0   | pos1,size1 |   data1   |
+     +------------+-----+-----+------------+------+----+
+                        |                         |
+                   +----+----+               +----+----+
+                   | data0.0 |               | data1.0 |
+                   +---------+               +---------+
+                   +---------+               +---------+
+                   | data0.1 |               | data1.1 |
+                   +---------+               +---------+
+
+  Cached data:
+
+                   Redis0                                 Redis1
+    +----------------------------------+  +----------------------------------+
+    |Hash                              |  |Hash                              |
+    |                                  |  |                                  |
+    |     Field            Value       |  |     Field            Value       |
+    | +------------+    +-----------+  |  | +------------+    +-----------+  |
+    | | pos0,size0 +--> |  data0.0  |  |  | | pos0,size0 +--> |  data0.1  |  |
+    | +------------+    +-----------+  |  | +------------+    +-----------+  |
+    | +------------+    +-----------+  |  | +------------+    +-----------+  |
+    | | pos1,size1 +--> |  data1.0  |  |  | | pos1,size1 +--> |  data1.1  |  |
+    | +------------+    +-----------+  |  | +------------+    +-----------+  |
+    |                                  |  |                                  |
+    +----------------------------------+  +----------------------------------+
+
+
+# Distributed File Cache Components
+## zookeeper
+As the bridge of Redis cache and FileCache client, zookeeper keeps the real-time status of Redis clusters for FileCache client.
+
+## Redis Cache Cluster
+Saves EC encoded data
+Redis_supervisor server registers Redis address in zookeeper, maintains the connection to zookeeper and automatically reconnects when session expires.
+
+## FileCache client
+Client does EC encoding/decoding and acquires real-time status, read/write cached data of Redis cluster based on the registered information in zookeeper.
+
+
+# Usage of Distributed File Cache
+
+## Dependencies
+*  FileCache clients
+    *    ECCodec: gf-comlete, jerasure.
+*  Redis cache cluster
+    *    Redis: redis (>2.8.5)
+    *    Python: python(>2.8.6). Pyhton library redis and kazoo.
+
+## Configuration
+*  redis_supervisor
+    *   Use config file ‘supervisor.conf’ to specify executable file path, zookeeper server address and node path
+*  FileCache client
+    *   Use config file ‘cluster.properties’ to specify zookeeper server address.
+        The  parameters to access redis are saved in zookeeper.
+
+## data write/read interface
+*  write data:
+    *   Both of serial and parallel interfaces are available.
+    *   Serial interface is used for high throughput, latency insensitive requests
+        and parallel interface is for low throughput, latency sensitive requests.
+*  read data:
+    *   Return stream of decoded data
+
+## Performance
+*  For files of 1.5 MB, 99% latency is
+    *   Serial interface: write time is 203ms, read time is 56ms
+    *   Parallel interface: write time is 54ms, read time is 32ms
+*  Service QPS is only restricted by the bandwidth from client to Redis cache cluster.
+
+
+
 # 背景介绍
 
   在文件存储服务中，用户上传的文件通常比较大，需要分片上传，文件存储服务中对用户上传的文件分片做缓存。

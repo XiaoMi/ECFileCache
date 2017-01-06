@@ -19,14 +19,6 @@
             <artifactId>java-erasure</artifactId>
         </dependency>
 
-        <!--
-        <dependency>
-            <groupId>com.xiaomi</groupId>
-            <artifactId>xiaomi-common-thrift</artifactId>
-        </dependency>
-        -->
-
-
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -99,20 +91,6 @@
                 <zookeeper_host>staging</zookeeper_host>
             </properties>
         </profile>
-
-        <profile>
-            <id>aws-or</id>
-            <activation>
-                <property>
-                    <name>aws-or</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <properties>
-                <zookeeper_use>true</zookeeper_use>
-                <zookeeper_host>aws-or</zookeeper_host>
-            </properties>
-        </profile>
     </profiles>
 
     <build>
@@ -161,7 +139,6 @@
                 </executions>
             </plugin>
 
-            <!-- 编译使用1.6 -->
             <!-- ignore all warnings of generated sources -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
