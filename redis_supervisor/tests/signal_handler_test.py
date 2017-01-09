@@ -9,53 +9,53 @@ __author__ = 'guoxuedong'
 is_exit = False
 
 def register_signal_handlers():
-    """
-    define signal processor
-    """
-    print "register sigterm handler"
-    signal.signal(signal.SIGTERM, terminate_handler)
-    signal.signal(signal.SIGINT, terminate_handler)
-    print "register sigterm handler done"
+  """
+  define signal processor
+  """
+  print "register sigterm handler"
+  signal.signal(signal.SIGTERM, terminate_handler)
+  signal.signal(signal.SIGINT, terminate_handler)
+  print "register sigterm handler done"
 
 def terminate_handler(signum, frame):
-    global is_exit
-    is_exit = True
-    print "terminate event is triggered"
-    register_signal_handlers()
+  global is_exit
+  is_exit = True
+  print "terminate event is triggered"
+  register_signal_handlers()
 
 class Foo(Thread):
-    global is_exit
+  global is_exit
 
-    def __init__(self, arg):
-        super(Foo, self).__init__()
-        self.id = arg
+  def __init__(self, arg):
+    super(Foo, self).__init__()
+    self.id = arg
 
-    def run(self):
-        while not is_exit:
-            print "running thread [%d]" % self.id
-            sleep(1)
+  def run(self):
+    while not is_exit:
+      print "running thread [%d]" % self.id
+      sleep(1)
 
-        print "terminated thread [%d]" % self.id
+    print "terminated thread [%d]" % self.id
 
 
 if __name__ == "__main__":
-    register_signal_handlers()
+  register_signal_handlers()
 
-    threads = []
-    for i in xrange(0, 1):
-        foo = Foo(i)
-        threads.append(foo)
+  threads = []
+  for i in xrange(0, 1):
+    foo = Foo(i)
+    threads.append(foo)
 
+  for t in threads:
+    t.start()
+
+  while True:
+    alive = False
     for t in threads:
-        t.start()
+      alive = alive or t.is_alive()
 
-    while True:
-        alive = False
-        for t in threads:
-            alive = alive or t.is_alive()
+    if not alive:
+      break
 
-        if not alive:
-            break
-
-        sleep(1)
+    sleep(1)
 

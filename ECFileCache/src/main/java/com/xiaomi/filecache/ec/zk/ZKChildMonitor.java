@@ -18,125 +18,125 @@ import java.util.Properties;
 
 public class ZKChildMonitor implements ZKChildListener {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ZKChildMonitor.class);
 
-    private static final String SLASH = "/";
-    private static final String ZK_CLUSTER_PATH_FORMAT = "/filecache/clusters/%d";
-    private static final String ZK_PARTITION_PATH_FORMAT = ZK_CLUSTER_PATH_FORMAT + "/partition_%d/pool";
-    private static final String ZK_SERVERS = "zk_servers";
-    private static final String CLUSTER_CONF_FILE = "/cluster.properties";
+  private static final String SLASH = "/";
+  private static final String ZK_CLUSTER_PATH_FORMAT = "/filecache/clusters/%d";
+  private static final String ZK_PARTITION_PATH_FORMAT = ZK_CLUSTER_PATH_FORMAT + "/partition_%d/pool";
+  private static final String ZK_SERVERS = "zk_servers";
+  private static final String CLUSTER_CONF_FILE = "/cluster.properties";
 
-    private String zkServers;
+  private String zkServers;
 
-    private ZKClient client;
-    private volatile Map<Integer, String> redisCluster;
-    private volatile RedisAccessBase redisAccess;
+  private ZKClient client;
+  private volatile Map<Integer, String> redisCluster;
+  private volatile RedisAccessBase redisAccess;
 
-    private boolean isRedisAccessParallel = false;
-    private short clusterId;
-    private short partitionId;
+  private boolean isRedisAccessParallel = false;
+  private short clusterId;
+  private short partitionId;
 
-    private static volatile ZKChildMonitor instance = null;
+  private static volatile ZKChildMonitor instance = null;
 
-    private ZKChildMonitor(short clusterId, short partitionId) {
+  private ZKChildMonitor(short clusterId, short partitionId) {
 
-        this.clusterId = clusterId;
-        this.partitionId = partitionId;
+    this.clusterId = clusterId;
+    this.partitionId = partitionId;
 
-        loadZkInfos();
-        client = new ZKClient(zkServers);
+    loadZkInfos();
+    client = new ZKClient(zkServers);
 
-        String zkClusterPath = String.format(ZK_CLUSTER_PATH_FORMAT, clusterId);
-        String zkPartitionPath = String.format(ZK_PARTITION_PATH_FORMAT, clusterId, partitionId);
+    String zkClusterPath = String.format(ZK_CLUSTER_PATH_FORMAT, clusterId);
+    String zkPartitionPath = String.format(ZK_PARTITION_PATH_FORMAT, clusterId, partitionId);
 
-        initConfig(zkClusterPath);
-        initRedisAccess(zkPartitionPath);
-    }
+    initConfig(zkClusterPath);
+    initRedisAccess(zkPartitionPath);
+  }
 
-    public static ZKChildMonitor getInstance(short clusterId, short partitionId) {
+  public static ZKChildMonitor getInstance(short clusterId, short partitionId) {
+    if (instance == null) {
+      synchronized (ZKChildMonitor.class) {
         if (instance == null) {
-            synchronized (ZKChildMonitor.class) {
-                if (instance == null) {
-                    instance = new ZKChildMonitor(clusterId, partitionId);
-                    LOGGER.info("init ZkChildMonitor with clusterId[{}]", clusterId);
-                }
-            }
-        } else {
-            Validate.isTrue(clusterId == instance.clusterId && partitionId == instance.partitionId,
-                    String.format("ZkChildMonitor initialized with id[%d], reject id[%d]", instance.clusterId, clusterId));
+          instance = new ZKChildMonitor(clusterId, partitionId);
+          LOGGER.info("init ZkChildMonitor with clusterId[{}]", clusterId);
         }
-        return instance;
+      }
+    } else {
+      Validate.isTrue(clusterId == instance.clusterId && partitionId == instance.partitionId,
+          String.format("ZkChildMonitor initialized with id[%d], reject id[%d]", instance.clusterId, clusterId));
+    }
+    return instance;
+  }
+
+  private void loadZkInfos() {
+
+    Properties props = new Properties();
+    try {
+      props.load(ZKChildMonitor.class.getResourceAsStream(CLUSTER_CONF_FILE));
+    } catch (IOException e) {
+      LOGGER.error("Read cluster.properties exception", e);
     }
 
-    private void loadZkInfos() {
+    String zkServersStr = System.getProperty(ZK_SERVERS);
+    if (StringUtils.isNotEmpty(zkServersStr)) {
+      LOGGER.warn("Apply the zk servers from system setting: [{}]", zkServersStr);
+    } else {
+      zkServersStr = props.getProperty(ZK_SERVERS);
+      LOGGER.warn("Apply the zk servers from cluster.properties: [{}]", zkServersStr);
+    }
+    Validate.notEmpty(zkServersStr);
 
-        Properties props = new Properties();
-        try {
-            props.load(ZKChildMonitor.class.getResourceAsStream(CLUSTER_CONF_FILE));
-        } catch (IOException e) {
-            LOGGER.error("Read cluster.properties exception", e);
-        }
+    zkServers = zkServersStr;
+  }
 
-        String zkServersStr = System.getProperty(ZK_SERVERS);
-        if (StringUtils.isNotEmpty(zkServersStr)) {
-            LOGGER.warn("Apply the zk servers from system setting: [{}]", zkServersStr);
-        } else {
-            zkServersStr = props.getProperty(ZK_SERVERS);
-            LOGGER.warn("Apply the zk servers from cluster.properties: [{}]", zkServersStr);
-        }
-        Validate.notEmpty(zkServersStr);
+  private void initConfig(String clusterPath){
+    Properties props = client.getData(Properties.class, clusterPath);
+    Config.init(props);
+    isRedisAccessParallel = Config.getInstance().isRedisAccessParallel();
+  }
 
-        zkServers = zkServersStr;
+  private void initRedisAccess(String clusterPoolPath) {
+
+    client.createPersistent(clusterPoolPath);
+
+    List<String> childrenNames = client.getChildren(clusterPoolPath);
+    onChanged(clusterPoolPath, childrenNames);
+    Validate.notNull(redisAccess);
+
+    client.registerChildChanges(clusterPoolPath, this);
+  }
+
+  @Override
+  public void onChanged(String parentPath, List<String> currentChildren) {
+    if (currentChildren == null) {
+      LOGGER.error("{} is null", parentPath);
+      return;
+    } else {
+      LOGGER.warn("{} is changed to '{}'", parentPath, currentChildren);
     }
 
-    private void initConfig(String clusterPath){
-        Properties props = client.getData(Properties.class, clusterPath);
-        Config.init(props);
-        isRedisAccessParallel = Config.getInstance().isRedisAccessParallel();
+    Map<Integer, String> zkRedisCluster = new HashMap<Integer, String>();
+    for (String node : currentChildren) {
+      String nodeData = client.getData(String.class, parentPath + SLASH + node);
+      zkRedisCluster.put(Integer.parseInt(node), nodeData);
     }
 
-    private void initRedisAccess(String clusterPoolPath) {
-
-        client.createPersistent(clusterPoolPath);
-
-        List<String> childrenNames = client.getChildren(clusterPoolPath);
-        onChanged(clusterPoolPath, childrenNames);
-        Validate.notNull(redisAccess);
-
-        client.registerChildChanges(clusterPoolPath, this);
+    if (MapUtils.isNotEmpty(zkRedisCluster) && !zkRedisCluster.equals(redisCluster)) {
+      redisCluster = zkRedisCluster;
+      if (isRedisAccessParallel) {
+        redisAccess = new RedisAccessParallel(zkRedisCluster);
+      } else {
+        redisAccess = new RedisAccessSerial(zkRedisCluster);
+      }
     }
-
-    @Override
-    public void onChanged(String parentPath, List<String> currentChildren) {
-        if (currentChildren == null) {
-            LOGGER.error("{} is null", parentPath);
-            return;
-        } else {
-            LOGGER.warn("{} is changed to '{}'", parentPath, currentChildren);
-        }
-
-        Map<Integer, String> zkRedisCluster = new HashMap<Integer, String>();
-        for (String node : currentChildren) {
-            String nodeData = client.getData(String.class, parentPath + SLASH + node);
-            zkRedisCluster.put(Integer.parseInt(node), nodeData);
-        }
-
-        if (MapUtils.isNotEmpty(zkRedisCluster) && !zkRedisCluster.equals(redisCluster)) {
-            redisCluster = zkRedisCluster;
-            if (isRedisAccessParallel) {
-                redisAccess = new RedisAccessParallel(zkRedisCluster);
-            } else {
-                redisAccess = new RedisAccessSerial(zkRedisCluster);
-            }
-        }
-    }
+  }
 
 
-    public RedisAccessBase get() {
-        return redisAccess;
-    }
+  public RedisAccessBase get() {
+    return redisAccess;
+  }
 
-    public Map<Integer, String> getRedisCluster() {
-        return redisCluster;
-    }
+  public Map<Integer, String> getRedisCluster() {
+    return redisCluster;
+  }
 }

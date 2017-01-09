@@ -9,40 +9,40 @@ import redis.clients.jedis.Response;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 public class RedisPutInfo extends RedisBase {
-    private final byte[] data;
-    private int expireTimeSec;
+  private final byte[] data;
+  private int expireTimeSec;
 
-    public RedisPutInfo(JedisPool jedisPool, String key, byte[] data) {
-        super(jedisPool, key);
-        this.data = data;
-        command = Command.PUT_INFO;
-        expireTimeSec = Config.getInstance().getRedisKeyExpireSec();
-    }
+  public RedisPutInfo(JedisPool jedisPool, String key, byte[] data) {
+    super(jedisPool, key);
+    this.data = data;
+    command = Command.PUT_INFO;
+    expireTimeSec = Config.getInstance().getRedisKeyExpireSec();
+  }
 
-    @Override
-    protected int doRequest(Jedis jedis, String redisAddress) {
+  @Override
+  protected int doRequest(Jedis jedis, String redisAddress) {
 
-        Pipeline pipeline = jedis.pipelined();
-        Response<String> response = pipeline.set(key.getBytes(), data);
-        pipeline.expire(key.getBytes(), expireTimeSec);
-        pipeline.sync();
+    Pipeline pipeline = jedis.pipelined();
+    Response<String> response = pipeline.set(key.getBytes(), data);
+    pipeline.expire(key.getBytes(), expireTimeSec);
+    pipeline.sync();
 
-        try {
-            String ret = response.get();
-            if (!StringUtils.equalsIgnoreCase(ret, "OK")) {
-                if (LOGGER.isDebugEnabled()) {
-                    String verbose = String.format("store info to redis[%s] error. key[%s]",
-                            redisAddress, key);
-                    LOGGER.debug(verbose);
-                }
-                return 1;
-            }
-            return 0;
-        } catch (JedisDataException e) {
-            String verbose = String.format("store info to redis[%s] error. key[%s]",
-                    redisAddress, key);
-            LOGGER.warn(verbose, e);
-            return 1;
+    try {
+      String ret = response.get();
+      if (!StringUtils.equalsIgnoreCase(ret, "OK")) {
+        if (LOGGER.isDebugEnabled()) {
+          String verbose = String.format("store info to redis[%s] error. key[%s]",
+              redisAddress, key);
+          LOGGER.debug(verbose);
         }
+        return 1;
+      }
+      return 0;
+    } catch (JedisDataException e) {
+      String verbose = String.format("store info to redis[%s] error. key[%s]",
+          redisAddress, key);
+      LOGGER.warn(verbose, e);
+      return 1;
     }
+  }
 }

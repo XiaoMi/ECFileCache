@@ -1,161 +1,166 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <parent>
-        <artifactId>ECFileCache-all</artifactId>
-        <groupId>com.xiaomi.filecache</groupId>
-        <version>1.0-SNAPSHOT</version>
-    </parent>
-    <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>ECFileCache</artifactId>
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>ECFileCache-all</artifactId>
+    <groupId>com.xiaomi.filecache</groupId>
     <version>1.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
 
-    <dependencies>
+  <artifactId>ECFileCache</artifactId>
+  <version>1.0-SNAPSHOT</version>
 
-        <dependency>
-            <groupId>com.xiaomi.filecache</groupId>
-            <artifactId>java-erasure</artifactId>
-        </dependency>
+  <dependencies>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>com.xiaomi.filecache</groupId>
+      <artifactId>java-erasure</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>org.apache.thrift</groupId>
-            <artifactId>thrift</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>org.apache.thrift</groupId>
+      <artifactId>thrift</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>commons-collections</groupId>
-            <artifactId>commons-collections</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>commons-collections</groupId>
+      <artifactId>commons-collections</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>zkclient</groupId>
-            <artifactId>zkclient</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+    </dependency>
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
+    <dependency>
+      <groupId>zkclient</groupId>
+      <artifactId>zkclient</artifactId>
+    </dependency>
 
-    </dependencies>
+    <dependency>
+      <groupId>com.github.guoxuedong</groupId>
+      <artifactId>java-erasure</artifactId>
+    </dependency>
 
-    <properties>
-        <zookeeper_use>false</zookeeper_use>
-        <zookeeper_host>onebox</zookeeper_host>
-    </properties>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+
+  </dependencies>
+
+  <properties>
+    <zookeeper_use>false</zookeeper_use>
+    <zookeeper_host>onebox</zookeeper_host>
+  </properties>
 
 
-    <profiles>
-        <profile>
-            <id>staging</id>
-            <activation>
-                <property>
-                    <name>staging</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <properties>
-                <zookeeper_use>true</zookeeper_use>
-                <zookeeper_host>staging</zookeeper_host>
-            </properties>
-        </profile>
-    </profiles>
+  <profiles>
+    <profile>
+      <id>staging</id>
+      <activation>
+        <property>
+          <name>staging</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <properties>
+        <zookeeper_use>true</zookeeper_use>
+        <zookeeper_host>staging</zookeeper_host>
+      </properties>
+    </profile>
+  </profiles>
 
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>*.properties</include>
-                </includes>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>*.properties</exclude>
-                </excludes>
-            </resource>
-        </resources>
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>*.properties</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <excludes>
+          <exclude>*.properties</exclude>
+        </excludes>
+      </resource>
+    </resources>
 
-        <plugins>
+    <plugins>
 
-            <plugin>
-                <groupId>org.apache.thrift.tools</groupId>
-                <artifactId>maven-thrift-plugin</artifactId>
-                <version>0.1.10</version>
-                <configuration>
-                    <generator>java:private-members</generator>
-                    <thriftSourceRoot>src/main/thrift</thriftSourceRoot>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>thrift-sources</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>thrift-test-sources</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+      <plugin>
+        <groupId>org.apache.thrift.tools</groupId>
+        <artifactId>maven-thrift-plugin</artifactId>
+        <version>0.1.10</version>
+        <configuration>
+          <generator>java:private-members</generator>
+          <thriftSourceRoot>src/main/thrift</thriftSourceRoot>
+        </configuration>
+        <executions>
+          <execution>
+            <id>thrift-sources</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>thrift-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
 
-            <!-- ignore all warnings of generated sources -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <showWarnings>false</showWarnings>
-                    <compilerArgs>
-                        <arg>-Xlint:none</arg>
-                    </compilerArgs>
-                </configuration>
-            </plugin>
+      <!-- ignore all warnings of generated sources -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <showWarnings>false</showWarnings>
+          <compilerArgs>
+            <arg>-Xlint:none</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-            </plugin>
-        </plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+      </plugin>
+    </plugins>
 
-    </build>
+  </build>
 </project>

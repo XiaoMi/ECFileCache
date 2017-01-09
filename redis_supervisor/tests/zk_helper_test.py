@@ -19,118 +19,118 @@ KAZOO_LOGGER = logging.getLogger(get_lib_logger_name(__name__))
 
 
 class MockSupervisor:
-    def __init__(self):
-        pass
+  def __init__(self):
+    pass
 
-    def stop_all(self, arg):
-        pass
+  def stop_all(self, arg):
+    pass
 
 
 class ZkHelperTest(unittest.TestCase):
-    def test_concurrent_startup(self):
-        class ZkHelperThread(threading.Thread):
-            def __init__(self):
-                super(ZkHelperThread, self).__init__()
-                self.zk_helper = ZkHelper(ZK_ADDRESSES, ZK_TIMEOUT, ZK_ROOT, REDIS_ADDRESS)
+  def test_concurrent_startup(self):
+    class ZkHelperThread(threading.Thread):
+      def __init__(self):
+        super(ZkHelperThread, self).__init__()
+        self.zk_helper = ZkHelper(ZK_ADDRESSES, ZK_TIMEOUT, ZK_ROOT, REDIS_ADDRESS)
 
-            def run(self):
-                self.zk_helper.start()
-                self.zk_helper.register_redis()
+      def run(self):
+        self.zk_helper.start()
+        self.zk_helper.register_redis()
 
-            def stop(self):
-                self.zk_helper.stop()
+      def stop(self):
+        self.zk_helper.stop()
 
-        LOGGER.warn("test concurrent startup")
-        zk_clients = []
-        expect = []
-        for i in xrange(0, 10):
-            zk_clients.append(ZkHelperThread())
-            expect.append(i)
+    LOGGER.warn("test concurrent startup")
+    zk_clients = []
+    expect = []
+    for i in xrange(0, 10):
+      zk_clients.append(ZkHelperThread())
+      expect.append(i)
 
-        for i in xrange(0, 10):
-            zk_clients[i].start()
+    for i in xrange(0, 10):
+      zk_clients[i].start()
 
-        #time.sleep(60)
-        for i in xrange(0, 10):
-            zk_clients[i].join()
+    #time.sleep(60)
+    for i in xrange(0, 10):
+      zk_clients[i].join()
 
-        zk_children = zk_clients[0].zk_helper.get_zk_client().get_children(path="%s/pool" % ZK_ROOT)
-        zk_children = [int(i) for i in zk_children]
-        zk_children.sort()
-        self.assertListEqual(expect, zk_children)
+    zk_children = zk_clients[0].zk_helper.get_zk_client().get_children(path="%s/pool" % ZK_ROOT)
+    zk_children = [int(i) for i in zk_children]
+    zk_children.sort()
+    self.assertListEqual(expect, zk_children)
 
-        for i in xrange(0, 10):
-            zk_clients[i].stop()
+    for i in xrange(0, 10):
+      zk_clients[i].stop()
 
-    def test_timeout(self):
-        LOGGER.warn("test timeout")
-        self.runZkHelper()
-        #pass
+  def test_timeout(self):
+    LOGGER.warn("test timeout")
+    self.runZkHelper()
+    #pass
 
-    def runZkHelper(self):
-        zk_helper = ZkHelper(ZK_ADDRESSES, ZK_TIMEOUT, ZK_ROOT, REDIS_ADDRESS)
+  def runZkHelper(self):
+    zk_helper = ZkHelper(ZK_ADDRESSES, ZK_TIMEOUT, ZK_ROOT, REDIS_ADDRESS)
 
-        zk_helper.start()
-        zk_helper.register_redis()
-        zk_helper.set_supervisor(MockSupervisor())
-        # cmd: sudo tc qdisc add dev eth0 root netem delay 4s
-        # cmd: sudo tc qdisc delete dev eth0 root netem delay 4s
+    zk_helper.start()
+    zk_helper.register_redis()
+    zk_helper.set_supervisor(MockSupervisor())
+    # cmd: sudo tc qdisc add dev eth0 root netem delay 4s
+    # cmd: sudo tc qdisc delete dev eth0 root netem delay 4s
 
-        time.sleep(600)
+    time.sleep(600)
 
-        zk_helper.stop()
+    zk_helper.stop()
 
-    def test_reconnect_when_zk_session_expire(self):
-        LOGGER.warn("test zk_session_expire with redis running")
+  def test_reconnect_when_zk_session_expire(self):
+    LOGGER.warn("test zk_session_expire with redis running")
 
-        self.reconnect_when_zk_session_expire(MockSupervisor())
+    self.reconnect_when_zk_session_expire(MockSupervisor())
 
-        time.sleep(10)
+    time.sleep(10)
 
-        LOGGER.warn("test zk_session_expire with redis stop")
-        self.reconnect_when_zk_session_expire(None)
+    LOGGER.warn("test zk_session_expire with redis stop")
+    self.reconnect_when_zk_session_expire(None)
 
-    def reconnect_when_zk_session_expire(self, supervisor):
-        zk_helper = ZkHelper(ZK_ADDRESSES, ZK_TIMEOUT, ZK_ROOT, REDIS_ADDRESS)
+  def reconnect_when_zk_session_expire(self, supervisor):
+    zk_helper = ZkHelper(ZK_ADDRESSES, ZK_TIMEOUT, ZK_ROOT, REDIS_ADDRESS)
 
-        zk_helper.start()
-        zk_helper.register_redis()
+    zk_helper.start()
+    zk_helper.register_redis()
 
-        # suppose redis already started
-        zk_helper.set_supervisor(supervisor)
+    # suppose redis already started
+    zk_helper.set_supervisor(supervisor)
 
-        # make zk session expired
-        zk_client = zk_helper.get_zk_client()
-        client_id = zk_client.client_id
-        time.sleep(10)
+    # make zk session expired
+    zk_client = zk_helper.get_zk_client()
+    client_id = zk_client.client_id
+    time.sleep(10)
 
-        zk_retry = KazooRetry(max_tries=3, delay=1.0, ignore_expire=False)
-        zk_client_new = KazooClient(hosts=ZK_ADDRESSES, timeout=ZK_TIMEOUT, connection_retry=zk_retry,
-                                    client_id=client_id, logger=KAZOO_LOGGER)
-        zk_client_new.start(ZK_TIMEOUT)
-        zk_client_new.stop()
-        # zk session expired done
+    zk_retry = KazooRetry(max_tries=3, delay=1.0, ignore_expire=False)
+    zk_client_new = KazooClient(hosts=ZK_ADDRESSES, timeout=ZK_TIMEOUT, connection_retry=zk_retry,
+                  client_id=client_id, logger=KAZOO_LOGGER)
+    zk_client_new.start(ZK_TIMEOUT)
+    zk_client_new.stop()
+    # zk session expired done
 
-        time.sleep(ZK_TIMEOUT)
+    time.sleep(ZK_TIMEOUT)
 
-        zk_children = zk_helper.get_zk_client().get_children(path="%s/pool" % ZK_ROOT)
-        zk_children = [int(i) for i in zk_children]
-        if supervisor:
-            self.assertTrue(zk_helper.get_registered_redis_id() in zk_children)
-        else:
-            self.assertFalse(zk_helper.get_registered_redis_id() in zk_children)
+    zk_children = zk_helper.get_zk_client().get_children(path="%s/pool" % ZK_ROOT)
+    zk_children = [int(i) for i in zk_children]
+    if supervisor:
+      self.assertTrue(zk_helper.get_registered_redis_id() in zk_children)
+    else:
+      self.assertFalse(zk_helper.get_registered_redis_id() in zk_children)
 
-        zk_helper.stop()
+    zk_helper.stop()
 
 if __name__ == "__main__":
-    unittest.main()
+  unittest.main()
 
-    '''
-    # to run a single test
-    suite = unittest.TestSuite()
-    suite.addTest(ZkHelperTest("test_timeout"))
-    #suite.addTest(ZkHelperTest("test_concurrent_startup"))
-    #suite.addTest(ZkHelperTest("test_reconnect_when_zk_session_expire"))
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
-    '''
+  '''
+  # to run a single test
+  suite = unittest.TestSuite()
+  suite.addTest(ZkHelperTest("test_timeout"))
+  #suite.addTest(ZkHelperTest("test_concurrent_startup"))
+  #suite.addTest(ZkHelperTest("test_reconnect_when_zk_session_expire"))
+  runner = unittest.TextTestRunner()
+  runner.run(suite)
+  '''
