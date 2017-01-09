@@ -38,20 +38,6 @@
                 <scope>compile</scope>
             </dependency>
 
-            <!--
-            <dependency>
-                <groupId>com.xiaomi</groupId>
-                <artifactId>xiaomi-common-thrift</artifactId>
-                <version>2.4.8</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiaomi</groupId>
-                <artifactId>xiaomi-common-zookeeper</artifactId>
-                <version>2.5.8</version>
-            </dependency>
-            -->
-
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
@@ -130,7 +116,6 @@
         </resources>
 
         <plugins>
-            <!-- 编译使用1.6 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

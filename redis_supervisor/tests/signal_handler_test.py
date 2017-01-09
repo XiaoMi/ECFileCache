@@ -10,7 +10,7 @@ is_exit = False
 
 def register_signal_handlers():
     """
-    定义信号的处理函数，以支持thread的退出控制
+    define signal processor
     """
     print "register sigterm handler"
     signal.signal(signal.SIGTERM, terminate_handler)
@@ -18,9 +18,6 @@ def register_signal_handlers():
     print "register sigterm handler done"
 
 def terminate_handler(signum, frame):
-    """
-    处理退出事件
-    """
     global is_exit
     is_exit = True
     print "terminate event is triggered"

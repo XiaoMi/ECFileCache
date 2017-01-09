@@ -32,7 +32,7 @@ class Supervisor:
         self.__stopped = False
 
     def register_signal_handlers(self):
-        """ 定义信号的处理函数
+        """ define signal processor
         """
         LOGGER.info("register sigterm handler")
         signal.signal(signal.SIGTERM, self.terminate_handler)
@@ -40,7 +40,7 @@ class Supervisor:
         signal.signal(signal.SIGPIPE, signal.SIG_IGN)
 
     def terminate_handler(self, signum, frame):
-        """ 处理退出事件
+        """ process terminate signal
         """
         LOGGER.info("terminate event is triggered")
         self.stop_all(True)
@@ -84,7 +84,7 @@ class Supervisor:
             self.stop_all()
 
     def stop_all(self, blocking=False):
-        """ 设置停止位，并向redis server进程发送停止信号
+        """ set stop falg, send terminate signal to redis server
         """
         if self.__stopped:
             return
@@ -99,7 +99,7 @@ class Supervisor:
                 self.__redis_process.send_signal(signal.SIGTERM)
 
                 if blocking:
-                    # 等待直到完全退出
+                    # wait until redis process return
                     LOGGER.info("wait until redis server quit")
                     time.sleep(REDIS_SERVER_STOP_FREEZE_TIME)
 
@@ -109,7 +109,7 @@ class Supervisor:
                     if ret_code is None:
                         LOGGER.warning("redis server of config[%s] do not exit in time", self.__redis_conf)
 
-                        # 直接kill相应的进程
+                        # kill redis process
                         self.__redis_process.kill()
                         LOGGER.warning("killed redis server")
 
