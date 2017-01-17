@@ -1,0 +1,8 @@
+# ECFileCache Change Log
+
+## 1.0.0 (1/17/2017)
+### Docs Change
+* update README.md.
+* add files NOTICE.txt, CHANGE.txt and VERSION
+* add docs for class.
+

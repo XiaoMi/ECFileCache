@@ -8,7 +8,7 @@
   <groupId>com.xiaomi.filecache</groupId>
   <artifactId>ECFileCache-all</artifactId>
   <packaging>pom</packaging>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <modules>
     <module>ECFileCache</module>
     <module>ECFileCache-test</module>
@@ -20,7 +20,7 @@
       <dependency>
         <groupId>com.xiaomi.filecache</groupId>
         <artifactId>ECFileCache</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
       </dependency>
 
       <dependency>
@@ -36,6 +36,7 @@
         <version>2.8.0</version>
         <scope>compile</scope>
       </dependency>
+
 
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -105,7 +106,7 @@
   <properties>
     <skipTests>true</skipTests>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <zookeeper_host>onebox</zookeeper_host>
+    <zookeeper_host>zkhost</zookeeper_host>
     <jvm_extra_arguments/>
     <main_class/>
     <service_name/>

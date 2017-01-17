@@ -1,4 +1,6 @@
-# Background
+# ECFileCache
+
+## Background
 
 The files uploaded with file storage service are usually very large
 which need to be split into several fragments.
@@ -16,7 +18,8 @@ We developed a distributed file cache based on erasure code to resolve this issu
 As a standalone service, distributed file cache encodes and stores the file fragments in distributed service nodes.
 
 
-# Distributed file cache
+## Distributed file cache
+
 Distributed file cache is based on Erasure Code and uses Redis for storage.
 Compared with other distributed caches, ECFileCache has no master and states for master-slave switches
 while keeping high availability.
@@ -37,7 +40,8 @@ A new node is registered automatically at the time new Redis service is added.
 The corresponding node is deleted when signing off a Redis service.
 
 
-# architecture diagrams
+## architecture diagrams
+
 
                          +-------------+
                          |     user    |
@@ -69,7 +73,8 @@ The corresponding node is deleted when signing off a Redis service.
             +-----------------------------------------+
 
 
-# Cache Data Structure
+## Cache Data Structure
+
 When data is uploaded from clients, a large file is split into several fragments,
 which can be uploaded simultaneously.
 The whole file structure is shown in fig by jointing all fragments.
@@ -134,35 +139,36 @@ Original data can be restored if the number of failing node is less than the num
     +----------------------------------+  +----------------------------------+
 
 
-# Distributed File Cache Components
-## zookeeper
+## Distributed File Cache Components
+
+### zookeeper
 As the bridge of Redis cache and FileCache client, zookeeper keeps the real-time status of Redis clusters for FileCache client.
 
 ## Redis Cache Cluster
 Saves EC encoded data
 Redis_supervisor server registers Redis address in zookeeper, maintains the connection to zookeeper and automatically reconnects when session expires.
 
-## FileCache client
+### FileCache client
 Client does EC encoding/decoding and acquires real-time status, read/write cached data of Redis cluster based on the registered information in zookeeper.
 
 
-# Usage of Distributed File Cache
+## Usage of Distributed File Cache
 
-## Dependencies
+### Dependencies
 *  FileCache clients
     *    ECCodec: gf-comlete, jerasure.
 *  Redis cache cluster
     *    Redis: redis (>2.8.5)
     *    Python: python(>2.8.6). Pyhton library redis and kazoo.
 
-## Configuration
+### Configuration
 *  redis_supervisor
     *   Use config file ‘supervisor.conf’ to specify executable file path, zookeeper server address and node path
 *  FileCache client
     *   Use config file ‘cluster.properties’ to specify zookeeper server address.
         The  parameters to access redis are saved in zookeeper.
 
-## data write/read interface
+### data write/read interface
 *  write data:
     *   Both of serial and parallel interfaces are available.
     *   Serial interface is used for high throughput, latency insensitive requests
@@ -170,7 +176,7 @@ Client does EC encoding/decoding and acquires real-time status, read/write cache
 *  read data:
     *   Return stream of decoded data
 
-## Performance
+### Performance
 *  For files of 1.5 MB, 99% latency is
     *   Serial interface: write time is 203ms, read time is 56ms
     *   Parallel interface: write time is 54ms, read time is 32ms

@@ -5,12 +5,12 @@
   <parent>
     <artifactId>ECFileCache-all</artifactId>
     <groupId>com.xiaomi.filecache</groupId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>ECFileCache</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
 
   <dependencies>
 
@@ -78,22 +78,22 @@
 
   <properties>
     <zookeeper_use>false</zookeeper_use>
-    <zookeeper_host>onebox</zookeeper_host>
+    <zookeeper_host>zkhost</zookeeper_host>
   </properties>
 
 
   <profiles>
     <profile>
-      <id>staging</id>
+      <id>testsrv</id>
       <activation>
         <property>
-          <name>staging</name>
+          <name>testsrv</name>
           <value>true</value>
         </property>
       </activation>
       <properties>
         <zookeeper_use>true</zookeeper_use>
-        <zookeeper_host>staging</zookeeper_host>
+        <zookeeper_host>testsrv</zookeeper_host>
       </properties>
     </profile>
   </profiles>
