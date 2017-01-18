@@ -91,7 +91,7 @@ public class RedisAccessTest {
     Assert.assertArrayEquals(buffer2, list.get(2));
 
     // delete
-    access.delete(key, ids);
+    access.delete(ids, key);
     try {
       access.get(ids, key);
       Assert.fail("should not reach here");
@@ -143,7 +143,7 @@ public class RedisAccessTest {
       long chunkPos = entry.getKey();
       int chunkSize = entry.getValue();
 
-      Pair<byte[][], int[]> chunkErasures = access.getChunk(key, chunkPos, chunkSize, ids);
+      Pair<byte[][], int[]> chunkErasures = access.getChunk(ids, key, chunkPos, chunkSize);
       list.add(DataUtil.array2DToArray(chunkErasures.getFirst()));
 
     }
@@ -153,7 +153,7 @@ public class RedisAccessTest {
     Assert.assertArrayEquals(buffer2, list.get(2));
 
     // delete
-    access.delete(key, ids);
+    access.delete(ids, key);
     try {
       access.get(ids, key);
       Assert.fail("should not reach here");

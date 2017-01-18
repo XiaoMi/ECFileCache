@@ -66,6 +66,13 @@ public class ZKChildMonitor implements ZKChildListener {
     initRedisAccess(zkPartitionPath);
   }
 
+  /**
+   * Get ZKChildMonitor instance
+   *
+   * @param clusterId FileCache Cluster Id
+   * @param partitionId FileCache partition Id
+   * @return ZKChildMonitor instance
+   */
   public static ZKChildMonitor getInstance(short clusterId, short partitionId) {
     if (instance == null) {
       synchronized (ZKChildMonitor.class) {

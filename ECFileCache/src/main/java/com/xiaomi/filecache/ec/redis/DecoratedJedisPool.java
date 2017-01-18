@@ -23,6 +23,10 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.Protocol;
 
+/**
+ * A wrapper of JedisPool
+ * save redis host and port
+ */
 public class DecoratedJedisPool extends JedisPool {
 
   private static final String ADDRESS_SEP = ":";
@@ -43,6 +47,13 @@ public class DecoratedJedisPool extends JedisPool {
     this.port = port;
   }
 
+  /**
+   * Constructs a redis pool
+   *
+   * @param redisAddress redis address, like host:port
+   * @return DecoratedJedisPool
+   * @throws ECFileCacheException
+   */
   public static DecoratedJedisPool create(String redisAddress)
       throws ECFileCacheException {
     String[] address = redisAddress.split(ADDRESS_SEP);
@@ -63,6 +74,11 @@ public class DecoratedJedisPool extends JedisPool {
     return new DecoratedJedisPool(jedisPoolConfig, host, port);
   }
 
+  /**
+   * Get redis address for log
+   *
+   * @return redis address, host:port
+   */
   public String getRedisAddress() {
     return host + ":" + port;
   }

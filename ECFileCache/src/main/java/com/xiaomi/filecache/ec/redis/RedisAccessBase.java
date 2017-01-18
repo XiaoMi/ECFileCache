@@ -48,6 +48,11 @@ public abstract class RedisAccessBase {
 
   static final Logger LOGGER = LoggerFactory.getLogger(RedisAccessBase.class.getName());
 
+  /**
+   * Constructs Redis access. Create Redis pool for all Redis
+   *
+   * @param redisMap Redis index and address
+   */
   public RedisAccessBase(Map<Integer, String> redisMap) {
     try {
       keyedPool.clear();
@@ -66,17 +71,68 @@ public abstract class RedisAccessBase {
     }
   }
 
-  public abstract void put(List<Integer> redisIds, String cacheKey, long fieldKey, final byte[][] chunks) throws ECFileCacheException;
+  /**
+   * Put chunk data of file to cache
+   *
+   * @param redisIds Redis indexes indicate which Redis to use
+   * @param cacheKey key of cached file
+   * @param chunkPos chunk offset in file, used as chunk key
+   * @param chunks chunk of file to cache
+   * @throws ECFileCacheException
+   */
+  public abstract void put(List<Integer> redisIds, String cacheKey, long chunkPos, final byte[][] chunks) throws ECFileCacheException;
 
+  /**
+   * Get file data from cache
+   *
+   * @param redisIds Redis indexes indicate which Redis to use
+   * @param cacheKey key of cached file
+   * @return all chunks of file. need to reorder and decode to get the origin file
+   * @throws ECFileCacheException
+   */
   public abstract List<Pair<byte[][], int[]>> get(List<Integer> redisIds, String cacheKey) throws ECFileCacheException;
 
-  public abstract Pair<byte[][], int[]> getChunk(String cacheKey, long chunkPos, int chunkSize, List<Integer> redisIds)
+  /**
+   * Get a specified chunk from cache
+   *
+   * @param redisIds Redis indexes indicate which Redis to use
+   * @param cacheKey key of cached file
+   * @param chunkPos chunk offset in file, used as chunk key
+   * @param chunkSize length of chunk data
+   * @return
+   * @throws ECFileCacheException
+   */
+  public abstract Pair<byte[][], int[]> getChunk(List<Integer> redisIds, String cacheKey, long chunkPos, int chunkSize)
       throws ECFileCacheException;
 
+  /**
+   * Get all chunks' info, named offset and size of chunk
+   *
+   * @param redisIds Redis indexes indicate which Redis to use
+   * @param cacheKey key of cached file
+   * @return all chunks' offset and size. The key of returned map is chunk offset, value is chunk size
+   * @throws ECFileCacheException
+   */
   public abstract Map<Long, Integer> getChunkPosAndSize(List<Integer> redisIds, String cacheKey) throws ECFileCacheException;
 
-  public abstract void delete(String cacheKey, List<Integer> redisIds) throws ECFileCacheException;
+  /**
+   * Delete cached data of key
+   *
+   * @param redisIds Redis indexes indicate which Redis to use
+   * @param cacheKey key of cached file
+   * @throws ECFileCacheException
+   */
+  public abstract void delete(List<Integer> redisIds, String cacheKey) throws ECFileCacheException;
 
+  /**
+   * Put info data to a cache node
+   * Use only one Redis, info may be lost when redis restart
+   * So do not save important data by this method
+   *
+   * @param redisId Redis index indicate which Redis to use
+   * @param cacheKey key of cache info
+   * @param data cache info
+   */
   public void putInfo(int redisId, String cacheKey, final byte[] data) {
     DecoratedJedisPool jedisPool = keyedPool.get(redisId);
     if (jedisPool == null) {
@@ -95,6 +151,13 @@ public abstract class RedisAccessBase {
     }
   }
 
+  /**
+   * Get info from cache node
+   *
+   * @param redisId Redis index indicate which Redis to use
+   * @param cacheKey key of cache info
+   * @return cached info data, maybe null
+   */
   /*@ Nullable */
   public byte[] getInfo(int redisId, String cacheKey) {
     DecoratedJedisPool jedisPool = keyedPool.get(redisId);
@@ -135,10 +198,19 @@ public abstract class RedisAccessBase {
     return jedisPools;
   }
 
+
   public Map<Integer, DecoratedJedisPool> getKeyedPool() {
     return keyedPool;
   }
 
+  /**
+   * Check whether times of access Redis failed is bigger than ECodec.CODING_BLOCK_NUM
+   *
+   * @param failCount times of access Redis failed
+   * @param method method name for log
+   * @param key the key of cached data
+   * @throws ECFileCacheException
+   */
   static void checkFail(int failCount, String method, String key) throws ECFileCacheException {
     if (failCount > ECodec.CODING_BLOCK_NUM) {
       String verbose = String.format("[%s]:get cached data key[%s] fail count > CODING_BLOCK_NUM. [%d] > [%d]",
@@ -148,6 +220,13 @@ public abstract class RedisAccessBase {
     }
   }
 
+  /**
+   * Check every row's length of 2D array is same
+   *
+   * @param data 2D array
+   * @return row's length of 2D array
+   * @throws ECFileCacheException
+   */
   static int checkDataAndGetLength(byte[][] data) throws ECFileCacheException {
     int length = -1;
     for (final byte[] aData : data) {
@@ -168,6 +247,13 @@ public abstract class RedisAccessBase {
     return length;
   }
 
+  /**
+   * Convert data read from redis to list
+   *
+   * @param redisDataList  array of Redis hash map that read from Redis nodes
+   * @return list with pair element of chunk data and erasures info
+   * @throws ECFileCacheException
+   */
   static List<Pair<byte[][], int[]>> convert(Map<byte[], byte[]>[] redisDataList) throws ECFileCacheException {
     int redisDataNum = redisDataList.length;
 
@@ -219,6 +305,14 @@ public abstract class RedisAccessBase {
     return chunkAndErasuresList;
   }
 
+  /**
+   * Convert chunks get from Redis.
+   * Make a zero-filled array if failed to read chunk from Redis.
+   *
+   * @param redisDataArray chunks get from all Redis nodes
+   * @param chunkSize length of chunk data
+   * @return pair of chunks and erasures array
+   */
   static Pair<byte[][], int[]> convertChunk(byte[][] redisDataArray, int chunkSize) {
     Validate.isTrue(ArrayUtils.isNotEmpty(redisDataArray));
 
@@ -237,6 +331,13 @@ public abstract class RedisAccessBase {
     return Pair.create(redisDataArray, adjustErasures(erasures, redisDataArray.length));
   }
 
+  /**
+   * Convert chunks info read from Redis to sorted map.
+   *
+   * @param redisFields chunks info get from Redis
+   * @return map, with chunk offset as key and chunk size of value
+   * @throws ECFileCacheException
+   */
   static Map<Long, Integer> convertChunkPosAndSize(Set<byte[]>[] redisFields) throws ECFileCacheException {
 
     Map<String, Long> chunkPosSizeMap = getValidateChunks(redisFields);
@@ -263,6 +364,12 @@ public abstract class RedisAccessBase {
     return chunkPosAndSize;
   }
 
+  /**
+   * Convert chunk info from Redis nodes to map.
+   *
+   * @param redisFields chunk offset and size info get from Redis. In format chunkPos_chunkSize.
+   * @return map, with chunk info as map key and chunk offset as value
+   */
   static Map<String, Long> getValidateChunks(Set<byte[]>[] redisFields) {
     Map<String, Integer> chunkPosAndSizeCount = new HashMap<String, Integer>();
     for (Set<byte[]> fields : redisFields) {
@@ -280,7 +387,7 @@ public abstract class RedisAccessBase {
       }
     }
 
-    Map<String, Long> chunkPosAndSize = new HashMap<String, Long>();
+    Map<String, Long> chunkInfoAndPos = new HashMap<String, Long>();
     for (Map.Entry<String, Integer> entry : chunkPosAndSizeCount.entrySet()) {
       if (entry.getValue() >= ECodec.DATA_BLOCK_NUM) {
 
@@ -288,20 +395,25 @@ public abstract class RedisAccessBase {
         Validate.isTrue(toks.length == 2);
 
         long chunkPos = Long.parseLong(toks[0]);
-        chunkPosAndSize.put(entry.getKey(), chunkPos);
+        chunkInfoAndPos.put(entry.getKey(), chunkPos);
       }
     }
 
-    return chunkPosAndSize;
+    return chunkInfoAndPos;
   }
 
+  /**
+   * Check chunks is continuous and have no overlap
+   *
+   * @param chunkPosAndSize chunks data
+   * @throws ECFileCacheException
+   */
   static void checkChunks(Map<Long, Integer> chunkPosAndSize) throws ECFileCacheException {
     long nextChunkPos = 0;
     for (Map.Entry<Long, Integer> entry : chunkPosAndSize.entrySet()) {
       long chunkPos = entry.getKey();
       int chunkSize = entry.getValue();
 
-      // check data is continuous and have no overlap
       if (nextChunkPos != chunkPos) {
         String verbose = String.format("lost chunk[%d], actual is [%d]", nextChunkPos, chunkPos);
         LOGGER.error(verbose);
@@ -312,8 +424,15 @@ public abstract class RedisAccessBase {
     }
   }
 
+  /**
+   * Convert erasures info list to array
+   *
+   * @param erasures list with int element, save erased chunk index
+   * @param ecBlockNum chunks' number
+   * @return erasures array indicated which chunk was erased
+   */
   static int[] adjustErasures(List<Integer> erasures, int ecBlockNum) {
-    // erasures array contains at least one element, required by libjerasure
+    // erasures array should contain at least one element, required by libjerasure
     if (erasures.isEmpty()) {
       erasures.add(ecBlockNum - 1);
     }

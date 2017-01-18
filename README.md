@@ -150,10 +150,10 @@ Client does EC encoding/decoding and acquires real-time status, read/write cache
     *   Use config file ‘cluster.properties’ to specify ZooKeeper server address. The parameters to access Redis are saved in ZooKeeper.
 
 ### Data Write/Read Interface
-*  write data:
+*  Write Data:
     *   Both of serial and parallel interfaces are available.
     *   Serial interface is used for high throughput, latency insensitive requests and parallel interface is for low throughput, latency sensitive requests.
-*  read data:
+*  Read Data:
     *   Return stream of decoded data
 
 ### Performance
@@ -162,6 +162,8 @@ Client does EC encoding/decoding and acquires real-time status, read/write cache
     *   Parallel interface: write time is 54ms, read time is 32ms
 *  Service QPS is only restricted by the bandwidth from client to Redis Cluster.
 
+
+* * * * * *
 
 * * * * * *
 

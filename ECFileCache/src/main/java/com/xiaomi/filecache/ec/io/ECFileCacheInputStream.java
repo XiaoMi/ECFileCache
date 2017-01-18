@@ -49,6 +49,15 @@ public class ECFileCacheInputStream extends InputStream {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ECFileCacheInputStream.class.getName());
 
+  /**
+   * Constructs a input stream to read cached data
+   *
+   * @param cacheKey the key of cached data
+   * @param chunkPosAndSize chunk info of cached data
+   * @param redisAccess object to read data from redis
+   * @param redisIds Redis list that saved the data
+   * @param stream the input stream of last chunk data
+   */
   public ECFileCacheInputStream(FileCacheKey cacheKey, Map<Long, Integer> chunkPosAndSize, RedisAccessBase redisAccess,
                   List<Integer> redisIds, InputStream stream) {
     this.key = cacheKey.getUuid();
@@ -59,6 +68,13 @@ public class ECFileCacheInputStream extends InputStream {
     this.endChunkStream = stream;
   }
 
+  /**
+   * Reads the next byte of data from the input stream
+   *
+   * @return     the next byte of data, or
+   *             <code>-1</code> if the end of the stream is reached
+   * @throws IOException
+   */
   @Override
   public int read() throws IOException {
     if (pos >= count) {
@@ -96,6 +112,19 @@ public class ECFileCacheInputStream extends InputStream {
     }
   }
 
+  /**
+   * Reads up to <code>len</code> bytes of data from the input stream into
+   * an array of bytes.  An attempt is made to read as many as
+   * <code>len</code> bytes, but a smaller number may be read.
+   * The number of bytes actually read is returned as an integer.
+   *
+   * @param b     the buffer into which the data is read.
+   * @param off   the start offset in array <code>b</code> at which the data is written.
+   * @param len   the maximum number of bytes to read.
+   * @return     the total number of bytes read into the buffer, or
+   *             <code>-1</code> if the end of the stream has been reached.
+   * @throws IOException
+   */
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
     checkIfClosed();
@@ -137,7 +166,7 @@ public class ECFileCacheInputStream extends InputStream {
     return cnt;
   }
 
-  public byte[] getChunk() throws ECFileCacheException {
+  private byte[] getChunk() throws ECFileCacheException {
 
     if(nextChunkPos >= fileSize){
       return null;
@@ -177,7 +206,7 @@ public class ECFileCacheInputStream extends InputStream {
 
   private byte[] getDataFromRedis(long chunkPos, int size) throws ECFileCacheException {
     Pair<byte[][], int[]> pair;
-    pair = redisAccess.getChunk(key, chunkPos, size, redisIds);
+    pair = redisAccess.getChunk(redisIds, key, chunkPos, size);
 
     if (pair == null) {
       return null;
@@ -195,11 +224,23 @@ public class ECFileCacheInputStream extends InputStream {
     return eCodec.decode(chunk, erasures);
   }
 
+  /**
+   * Returns the number of bytes that can be read from this input stream
+   *
+   * @return the number of bytes that can be read, or
+   *         <code>0</code> if the end of the stream has been reached.
+   * @throws IOException
+   */
   @Override
   public int available() throws IOException {
     return fileSize - nextChunkPos + (count - pos);
   }
 
+  /**
+   * close this input stream
+   *
+   * @throws IOException
+   */
   @Override
   public void close() throws IOException {
     isClosed = true;

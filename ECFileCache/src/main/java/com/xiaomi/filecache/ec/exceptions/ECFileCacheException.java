@@ -16,10 +16,21 @@ package com.xiaomi.filecache.ec.exceptions;
 public class ECFileCacheException extends Exception {
   private static final long serialVersionUID = -3212481760184821262L;
 
+  /**
+   * Constructs a new exception with the specified cause and a detail message
+   *
+   * @param message the detail message
+   * @param cause the cause
+   */
   public ECFileCacheException(String message, Throwable cause) {
     super(message, cause);
   }
 
+  /**
+   * Constructs a new exception with a detail message
+   *
+   * @param message the detail message
+   */
   public ECFileCacheException(String message) {
     super(message);
   }

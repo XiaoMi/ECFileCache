@@ -39,14 +39,30 @@ public class ZKClient {
 
   private final ZkClient client;
 
+  /**
+   * Create new ZkClient of servers
+   *
+   * @param servers ZooKeeper client hosts
+   */
   public ZKClient(String servers) {
     client = new ZkClient(servers, SESSION_TIMEOUT, CONNECTION_TIMEOUT, new BytesPushThroughSerializer());
   }
 
+  /**
+   * Create persistent node of path
+   *
+   * @param path ZooKeeper node path
+   */
   public void createPersistent(String path) {
     client.createPersistent(getRealPath(path), true);
   }
 
+  /**
+   * Get children nodes of path
+   *
+   * @param path list children of path
+   * @return children list
+   */
   public List<String> getChildren(String path) {
     return client.getChildren(getRealPath(path));
   }
@@ -62,6 +78,14 @@ public class ZKClient {
     client.subscribeChildChanges(realPath, underlyingListener);
   }
 
+  /**
+   * Get data of node path
+   *
+   * @param clazz target Class type
+   * @param path get data of path
+   * @param <T> Class type
+   * @return node data of clazz type
+   */
   @SuppressWarnings("unchecked")
   public <T> T getData(Class<T> clazz, String path) {
     byte[] bytes = client.readData(getRealPath(path));

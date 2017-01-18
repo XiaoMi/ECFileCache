@@ -289,7 +289,7 @@ public class ECFileCacheTest {
       ids.add((offset + i) % fileCacheKeyObj.getDeviceClusterSize());
     }
     RedisAccessBase redisAccess = client.getRedisAccess();
-    redisAccess.delete(fileCacheKeyObj.getUuid(), ids);
+    redisAccess.delete(ids, fileCacheKeyObj.getUuid());
 
     // get file
     byte[] cachedFile = client.getFile(fileCacheKey);
@@ -298,7 +298,7 @@ public class ECFileCacheTest {
 
     // delete more part of data
     ids.add((offset + 3) % fileCacheKeyObj.getDeviceClusterSize());
-    redisAccess.delete(fileCacheKeyObj.getUuid(), ids);
+    redisAccess.delete(ids, fileCacheKeyObj.getUuid());
 
     try {
       client.getFile(fileCacheKey);

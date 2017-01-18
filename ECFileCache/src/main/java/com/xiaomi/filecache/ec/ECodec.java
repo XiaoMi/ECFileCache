@@ -55,8 +55,13 @@ public class ECodec {
     return ECodecHolder.INSTANCE;
   }
 
-
-
+  /**
+   * Encode data use erasure code
+   *
+   * @param data data to be encoded
+   * @return encoded data in 2D array
+   * @throws ECFileCacheException
+   */
   public byte[][] encode(byte[] data) throws ECFileCacheException {
 
     if (ArrayUtils.isEmpty(data)) {
@@ -83,6 +88,14 @@ public class ECodec {
     return DataUtil.concatArray2D(dataBlock, codingBlock);
   }
 
+  /**
+   * Decode data that encoded by erasure code
+   *
+   * @param data encoded data
+   * @param erasures array marks erased data index
+   * @return decoded data
+   * @throws ECFileCacheException
+   */
   public byte[] decode(byte[][] data, int[] erasures) throws ECFileCacheException {
 
     if (data.length != DATA_BLOCK_NUM + CODING_BLOCK_NUM) {

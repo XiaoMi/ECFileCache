@@ -49,7 +49,7 @@ public class ECFileCache {
   }
 
   /**
-   * create file cache key
+   * Create file cache key
    *
    * @param size file size
    * @return fileCacheId. uniq file cache key
@@ -76,12 +76,12 @@ public class ECFileCache {
   }
 
   /**
-   * cache file
+   * Cache file
    *
    * @param fileCacheKeyStr file cache key
    * @param chunkPos chunk offset
    * @param inputStream chunk content
-   * @param crc32 chunkd crc32
+   * @param crc32 crc32 of chunk
    * @return start pos of next chunk
    */
 
@@ -124,7 +124,7 @@ public class ECFileCache {
   }
 
   /**
-   * get whole file
+   * Get the whole file
    *
    * @param fileCacheKeyStr file cache key
    * @return        entire file
@@ -174,7 +174,7 @@ public class ECFileCache {
   }
 
   /**
-   * get file stream
+   * Get file as an input stream
    *
    * @param fileCacheKeyStr file cache key
    * @return file stream
@@ -184,7 +184,8 @@ public class ECFileCache {
   }
 
   /**
-   * get file stream
+   * Get file as an input stream.
+   * Append last chunk data to cached file
    *
    * @param fileCacheKeyStr file cache key
    * @param endChunkStream last chunk of file
@@ -201,7 +202,7 @@ public class ECFileCache {
   }
 
   /**
-   * delete cached file
+   * Delete cached file
    *
    * @param fileCacheKeyStr file cache key
    */
@@ -210,11 +211,11 @@ public class ECFileCache {
     Validate.isTrue(fileCacheKey.getVersion() == ECodec.VERSION);
 
     List<Integer> redisIds = getRedisIds(fileCacheKey);
-    monitor.get().delete(fileCacheKey.getUuid(), redisIds);
+    monitor.get().delete(redisIds, fileCacheKey.getUuid());
   }
 
   /**
-   * cache key-value data
+   * Cache key-value data
    *
    * @param keyStr cache key
    * @param data cache value
@@ -226,7 +227,7 @@ public class ECFileCache {
   }
 
   /**
-   * get key-value data
+   * Get key-value data
    *
    * @param keyStr cache key
    * @return cache value

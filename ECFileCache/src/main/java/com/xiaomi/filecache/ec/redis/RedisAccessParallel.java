@@ -50,7 +50,7 @@ public class RedisAccessParallel extends RedisAccessBase {
   }
 
   @Override
-  public void put(List<Integer> redisIds, String cacheKey, long fieldKey, final byte[][] chunks) throws ECFileCacheException {
+  public void put(List<Integer> redisIds, String cacheKey, long chunkPos, final byte[][] chunks) throws ECFileCacheException {
 
     long dataLength = checkDataAndGetLength(chunks);
     List<DecoratedJedisPool> jedisPools = getJedisPools(redisIds);
@@ -63,7 +63,7 @@ public class RedisAccessParallel extends RedisAccessBase {
       DecoratedJedisPool jedis = jedisPools.get(i);
       if (jedis != null) {
         final String key = cacheKey + SEP + i;
-        final String field = fieldKey + SEP + dataLength;
+        final String field = chunkPos + SEP + dataLength;
         final byte[] data = chunks[i];
         RedisPutChunk redisPutChunk = new RedisPutChunk(jedis, key, field, data);
 
@@ -110,7 +110,7 @@ public class RedisAccessParallel extends RedisAccessBase {
   }
 
   @Override
-  public Pair<byte[][], int[]> getChunk(String cacheKey, long chunkPos, int chunkSize, List<Integer> redisIds) throws
+  public Pair<byte[][], int[]> getChunk(List<Integer> redisIds, String cacheKey, long chunkPos, int chunkSize) throws
                                                          ECFileCacheException {
 
     List<DecoratedJedisPool> jedisPools = getJedisPools(redisIds);
@@ -174,7 +174,7 @@ public class RedisAccessParallel extends RedisAccessBase {
   }
 
   @Override
-  public void delete(String cacheKey, List<Integer> redisIds) throws ECFileCacheException {
+  public void delete(List<Integer> redisIds, String cacheKey) throws ECFileCacheException {
 
     List<DecoratedJedisPool> jedisPools = getJedisPools(redisIds);
     List<RedisDelete> redisDeleteList = new ArrayList<RedisDelete>();

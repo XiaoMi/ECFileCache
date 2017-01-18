@@ -40,11 +40,26 @@ public abstract class RedisBase implements Callable<Integer> {
 
   static final Logger LOGGER = LoggerFactory.getLogger(RedisBase.class.getName());
 
+  /**
+   * Constructs Redis command handler.
+   * Communicate with redis and process Redis request
+   *
+   * @param jedisPool pool to access redis
+   * @param key cached data key
+   */
   public RedisBase(JedisPool jedisPool, String key) {
     this.jedisPool = (DecoratedJedisPool) jedisPool;
     this.key = key;
   }
 
+  /**
+   * Get client from pool and do the request
+   * Return the client to pool after request finished
+   *
+   * @return <code>0<code/> if Redis request succeeded, or
+   *         <code>1<code/> if Redis request failed
+   * @throws Exception
+   */
   @Override
   public Integer call() throws Exception {
     if (jedisPool == null) {
@@ -76,5 +91,13 @@ public abstract class RedisBase implements Callable<Integer> {
     }
   }
 
+  /**
+   * Do the actual request, such as get, set, del, etc.
+   *
+   * @param jedis Redis client
+   * @param redisAddress redis address
+   * @return <code>0<code/> if Redis request succeeded, or
+   *         <code>1<code/> if Redis request failed
+   */
   protected abstract int doRequest(Jedis jedis, String redisAddress);
 }

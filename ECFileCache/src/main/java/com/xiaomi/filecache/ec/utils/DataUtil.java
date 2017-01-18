@@ -20,6 +20,14 @@ public class DataUtil {
 
   // 2D array operation
 
+  /**
+   * Convert 1D array to 2D array
+   *
+   * @param b 1D array
+   * @param k row number of 2D array
+   * @return k x (b.length/k) 2D array
+   * @throws ECFileCacheException
+   */
   public static byte[][] arrayToArray2D(byte[] b, int k) throws ECFileCacheException {
     if (k == 0) {
       throw new ECFileCacheException("can not convert to zero size array");
@@ -35,6 +43,13 @@ public class DataUtil {
     return bb;
   }
 
+  /**
+   * Convert 2D array to 1D array
+   *
+   * @param bb 2D array
+   * @return 1D array
+   * @throws ECFileCacheException
+   */
   public static byte[] array2DToArray(byte[][] bb) throws ECFileCacheException {
     if (ArrayUtils.isEmpty(bb)) {
       String verbose = "empty data";
@@ -56,6 +71,17 @@ public class DataUtil {
     return b;
   }
 
+  /**
+   * Concat two 2D array
+   *
+   * @param a first 2D array
+   * @param b second 2D array
+   * @return 2D array like
+   *                 +---+
+   *                 | a |
+   *                 | b |
+   *                 +---+
+   */
   public static byte[][] concatArray2D(byte[][] a, byte[][] b) {
     int k = a.length + b.length;
     byte[][] concatedArray = new byte[k][];
@@ -69,6 +95,13 @@ public class DataUtil {
     return concatedArray;
   }
 
+  /**
+   * Get first several rows of 2D array
+   *
+   * @param bb 2D array
+   * @param k first k rows
+   * @return partial 2D array
+   */
   public static byte[][] getPartArray2D(byte[][] bb, int k) {
     if (k == 0 || k > bb.length) {
       return null;
@@ -90,6 +123,11 @@ public class DataUtil {
     return partArray2D;
   }
 
+  /**
+   * Print debug info in format: "thread id. file name. line number. message".
+   *
+   * @param msg message to be printed
+   */
   /* for debug */
   public static void printLineInfo(String msg) {
     StackTraceElement ste = new Throwable().getStackTrace()[1];

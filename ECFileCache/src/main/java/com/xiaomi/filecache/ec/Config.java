@@ -70,7 +70,11 @@ public class Config {
     redisPassword = props.getProperty(REDIS_PASSWORD, null);
   }
 
-
+  /**
+   * Init Config instance
+   *
+   * @param props properties
+   */
   public static void init(Properties props) {
     if (config == null) {
       synchronized (Config.class) {
@@ -82,6 +86,11 @@ public class Config {
     }
   }
 
+  /**
+   * Get Config instance
+   *
+   * @return Config
+   */
   public static Config getInstance() {
     Validate.isTrue(config != null);
     return config;

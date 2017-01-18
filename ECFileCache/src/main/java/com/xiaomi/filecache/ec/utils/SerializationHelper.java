@@ -24,6 +24,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
 public class SerializationHelper {
+  /**
+   * convert bytes to thrift object
+   *
+   * @param clazz target Class type
+   * @param bytes data
+   * @param <T> Class type
+   * @return thrift object
+   */
   public static <T extends TBase<T, ?>> T toThriftObject(Class<T> clazz, byte[] bytes) {
     Validate.notNull(clazz);
     Validate.notNull(bytes);
@@ -45,6 +53,13 @@ public class SerializationHelper {
     }
   }
 
+  /**
+   * convert thrift object to bytes
+   *
+   * @param obj thrift object
+   * @param <T> Class type
+   * @return bytes data
+   */
   public static <T extends TBase<T, ?>> byte[] toBytes(T obj) {
     Validate.notNull(obj);
 
